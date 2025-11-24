@@ -37,29 +37,29 @@ This project gives a complete penetration testing workflow:
 ## Tech Stack
 
 **Backend**
-Python 3.13+
-FastAPI
-SQLAlchemy
-MySQL
+- Python 3.13+
+- FastAPI
+- SQLAlchemy
+- MySQL
 
 **Frontend**
-React.js
-Ant design
-Websockets
+- React.js
+- Ant design
+- Websockets
 
 **Security Tools**
-Nmap
-Nuclei
-Metasploit
+- Nmap
+- Nuclei
+- Metasploit
 
 **Automation**
-Ansible
-Celery
+- Ansible
+- Celery
 
 **Devops**
-Docker
-Docker compose
-Github Actions
+- Docker
+- Docker compose
+- Github Actions
 
 ## Project Timeline
 
