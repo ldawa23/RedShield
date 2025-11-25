@@ -83,3 +83,35 @@ class Vulnerability(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
 
+    #Severity and Classification
+    severity = Column(Enum(SeverityEnum), nullable=False, index=True)
+    cvss_score = Column(Float)
+
+    #Context
+    affected_service = Column(Strings(255))
+    port = Column(Integer)
+    protocol = Column(String(10))
+    service_name = Column(String(100))
+
+    #Details of disovery
+    discovered_by = Column(String(50))  # nmap, nuclei, etc
+    discovered_at = Column(DateTime, default=datetime.utcnow)
+    
+    #Track fixed part
+    is_exploited = Column(Boolean, default=False)
+    is_fixed = Column(Boolean, default=False)
+    false_positive = Column(Boolean, default=False)
+
+    #OWASP & MITRE mapping
+    owasp_category = Column(String(100))    #A03:2021 - Injection
+    mitre_techniques = Column(String(255))  #T1190, T1210
+
+    #Relationshio
+    scan = relationship("Scan Result", back_populates="vulnerabilities")
+    exploits = relationship("Attempted Exploit", back_populates="vulnerability", cascade="all, delete-orphan")
+    remediations = relationship("Fixed Action", back_populates="vulnerability", cascade="all, delete-orphan")
+
+    def repr(self):
+        return f"<Vulnerability(id={self.id}, title={self.title}, severity={self.severity.value})>"
+
+
