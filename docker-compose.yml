@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: redshield_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: redshield_db
+      MYSQL_USER: redshield
+      MYSQL_PASSWORD: redshield123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - redshield_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for Celery task queue - we'll use this later)
+  redis:
+    image: redis:7-alpine
+    container_name: redshield_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - redshield_network
+
+volumes:
+  mysql_data:
+
+networks:
+  redshield_network:
+    driver: bridge
+
