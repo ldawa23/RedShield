@@ -1,6 +1,7 @@
 import click
 from models.scan import Scan
 from models.vulnerability import Vulnerability
+from core.severity import apply_default_severity, SEVERITY_ORDER
 
 @click.group()
 def cli():
@@ -13,27 +14,58 @@ def scan(target):
     """Scan TARGET for vulnerabilities """
     scan = Scan.new(target=target)
 
-    v1 = Vulnerability(
+    vulns = [
+        Vulnerability(
             id=1,
-            target=target,
-            vuln_type="DEFAULT_CREDENTIALS",
-            service="SSH",
-            port=22,
-            severity="Critical",
-            status="Discovered",
-    )
-    v2 = Vulnerability(
-            id=2,
             target=target,
             vuln_type="EXPOSED_DATABASE_PORT",
             service="MongoDB",
             port=27017,
-            severity="Critical",
-            status="Discovered",
-    )
+            severity="",        # let config fill this
+            status="DISCOVERED",
+        ),
+        Vulnerability(
+            id=2,
+            target=target,
+            vuln_type="DEFAULT_CREDENTIALS",
+            service="SSH",
+            port=22,
+            severity="",        # let config fill this
+            status="DISCOVERED",
+        ),
+        Vulnerability(
+            id=3,
+            target=target,
+            vuln_type="OUTDATED_COMPONENT",
+            service="Apache",
+            port=80,
+            severity="",        # let config fill this
+            status="DISCOVERED",
+        ),
+        Vulnerability(
+            id=4,
+            target=target,
+            vuln_type="MISSING_HTTPS",
+            service="HTTP",
+            port=80,
+            severity="",        # let config fill this
+            status="DISCOVERED",
+        ),
+    ]
 
-    scan.vulnerabilities.extend([v1,v2])
-    scan.status="Completed"
+    for v in vulns:
+        apply_default_severity(v)
+        scan.vulnerabilities.append(v)
+
+    scan.status = "Completed"
+
+    def severity_key(v: Vulnerability):
+        try:
+            return SEVERITY_ORDER.index(v.severity)
+        except ValueError:
+            return len(SEVERITY_ORDER)  #UNknown severities go last
+    
+    sorted_vulns = sorted(scan.vulnerabilites, key=severity_key)
 
     click.echo(f"[SCAN] Would scan target: {scan.target}")
     click.echo(f"       Scan ID: {scan.id}")
