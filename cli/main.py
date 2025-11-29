@@ -1,4 +1,6 @@
 import click
+from models.scan import Scan
+from models.vulnerability import Vulnerability
 
 @click.group()
 def cli():
@@ -9,10 +11,39 @@ def cli():
 @click.argument("target")
 def scan(target):
     """Scan TARGET for vulnerabilities """
-    click.echo(f"[SCAN] Would scan target: {target}")
+    scan = Scan.new(target=target)
+
+    v1 = Vulnerability(
+            id=1,
+            target=target,
+            vuln_type="DEFAULT_CREDENTIALS",
+            service="SSH",
+            port=22,
+            severity="Critical",
+            status="Discovered",
+    )
+    v2 = Vulnerability(
+            id=2,
+            target=target,
+            vuln_type="EXPOSED_DATABASE_PORT",
+            service="MongoDB",
+            port=27017,
+            severity="Critical",
+            status="Discovered",
+    )
+
+    scan.vulnerabilities.extend([v1,v2])
+    scan.status="Completed"
+
+    click.echo(f"[SCAN] Would scan target: {scan.target}")
+    click.echo(f"       Scan ID: {scan.id}")
+    click.echo(f"       Status: {scan.status}")
+    click.echo("       Vulnerabilities:")
+    for v in scan.vulnerabilities:
+        click.echo(f"   - ({v.severity}) {v.vuln_type} on {v.service}:{v.port}")
 
 @cli.command()
-@click.argument("target")
+@click.argument("scan_id")
 def report(scan_id):
     """Generate report for a scan"""
     click.echo(f"[REPORT] Would generate report for scan: {scan_id}")
