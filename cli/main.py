@@ -2,6 +2,7 @@ import click
 from models.scan import Scan
 from models.vulnerability import Vulnerability
 from core.severity import apply_default_severity, SEVERITY_ORDER
+from core.fake_data import build_demo_vulnerabilities
 
 @click.group()
 def cli():
@@ -13,68 +14,12 @@ def cli():
 def scan(target):
     """Scan TARGET for vulnerabilities """
     scan = Scan.new(target=target)
-
-    vulns = [
-        Vulnerability(
-            id=1,
-            target=target,
-            vuln_type="EXPOSED_DATABASE_PORT",
-            service="MongoDB",
-            port=27017,
-            severity="",        # let config fill this
-            status="DISCOVERED",
-        ),
-        Vulnerability(
-            id=2,
-            target=target,
-            vuln_type="DEFAULT_CREDENTIALS",
-            service="SSH",
-            port=22,
-            severity="",        # let config fill this
-            status="DISCOVERED",
-        ),
-        Vulnerability(
-            id=3,
-            target=target,
-            vuln_type="OUTDATED_COMPONENT",
-            service="Apache",
-            port=80,
-            severity="",        # let config fill this
-            status="DISCOVERED",
-        ),
-        Vulnerability(
-            id=4,
-            target=target,
-            vuln_type="MISSING_HTTPS",
-            service="HTTP",
-            port=80,
-            severity="",        # let config fill this
-            status="DISCOVERED",
-        ),
-    ]
-
+    
+    vulns = build_demo_vulnerabilities(target)
     for v in vulns:
-        apply_default_severity(v)
         scan.vulnerabilities.append(v)
 
     scan.status = "Completed"
-
-    def severity_key(v: Vulnerability):
-        try:
-            return SEVERITY_ORDER.index(v.severity)
-        except ValueError:
-            return len(SEVERITY_ORDER)  #UNknown severities go last
-    
-    sorted_vulns = sorted(scan.vulnerabilities, key=severity_key)
-
-    click.echo(f"[SCAN] Would scan target: {scan.target}")
-    click.echo(f"       Scan ID: {scan.id}")
-    click.echo(f"       Status: {scan.status}")
-    click.echo("       Vulnerabilities:")
-    click.echo(
-            f"- {v.vuln_type} on {v.service}:{v.port} "
-            f"({v.severity}, score={v.priority_score()})"
-    )
 
 @cli.command()
 @click.argument("scan_id")
