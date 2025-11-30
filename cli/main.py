@@ -65,14 +65,16 @@ def scan(target):
         except ValueError:
             return len(SEVERITY_ORDER)  #UNknown severities go last
     
-    sorted_vulns = sorted(scan.vulnerabilites, key=severity_key)
+    sorted_vulns = sorted(scan.vulnerabilities, key=severity_key)
 
     click.echo(f"[SCAN] Would scan target: {scan.target}")
     click.echo(f"       Scan ID: {scan.id}")
     click.echo(f"       Status: {scan.status}")
     click.echo("       Vulnerabilities:")
-    for v in scan.vulnerabilities:
-        click.echo(f"   - ({v.severity}) {v.vuln_type} on {v.service}:{v.port}")
+    click.echo(
+            f"- {v.vuln_type} on {v.service}:{v.port} "
+            f"({v.severity}, score={v.priority_score()})"
+    )
 
 @cli.command()
 @click.argument("scan_id")
