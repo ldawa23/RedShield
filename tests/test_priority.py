@@ -11,7 +11,7 @@ def testSeverity():
             severity="High",
             status="Discovered",
     )
-    assert v_high.priority_Score() == SEVERITY_LEVELS["High"]
+    assert v_high.priority_score() == SEVERITY_LEVELS["High"]
 
     v_critical = Vulnerability(
             id=2,
