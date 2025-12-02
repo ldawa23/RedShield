@@ -1,3 +1,4 @@
+
 import os
 import subprocess
 import tempfile
@@ -43,10 +44,3 @@ class NmapScanner:  #Runs nmap and parses results
             raise RuntimeError(
                     "Nmap not found. INstall it: apt-get install nmap (Linux) or brew install nmap (Mac)"
             )
-        except subprocess.TimeoutExpired:
-            raise RuntimeError("Nmap scan timed out")
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Nmap failed: {e.stderr.decode()}")
-
-    def results(self) -> None:
-
