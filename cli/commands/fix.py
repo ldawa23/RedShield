@@ -1,5 +1,5 @@
 import click
-from redshield.cli.utils.formatters import ( formatSuccessMessage, formatErrorMessage, formatInfoMessage, formatWarningMessage, formatSeverity )
+from cli.utils.formatters import ( formatSuccessMessage, formatErrorMessage, formatInfoMessage, formatWarningMessage, formatSeverity )
 
 @click.command()
 @click.argument('scan_id')
@@ -51,7 +51,7 @@ def fix(scan_id, auto, severity, dry_run):
             for vuln in bar:
                 pass    #Simulate fix 
         click.echo()
-        click.echo(formatSuccessMessage(f"Fixed {len(fixable)} vulnerabilities!")))
+        click.echo(formatSuccessMessage(f"Fixed {len(fixable)} vulnerabilities!"))
         click.echo()
     
     except Exception as e:
