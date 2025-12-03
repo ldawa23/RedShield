@@ -1,20 +1,20 @@
 import click
 import json
-from redshield.cli.utils.validators import validate_target, validate_range_port
-from redshield.cli.utils.formatters import ( formatSucessMessage, formatErrorMessage, formatInfoMessage, formatWarningMessage, formatSeverity, formatVulnerability )
+from cli.utils.validators import validate, validate_port
+from cli.utils.formatters import ( formatSuccessMessage, formatErrorMessage, formatInfoMessage, formatWarningMessage, formatSeverity, formatVulnerability )
 
 @click.command()
 @click.argument('target')
-@click.option('--scan-type', '-s', type=click.Choice(['quick', 'full', 'deep']), default='quick' help='Scan intensity')
+@click.option('--scan-type', '-s', type=click.Choice(['quick', 'full', 'deep']), default='quick', help='Scan intensity')
 @click.option('--port-range', '-p', default='1-1000',  help='Port range to scan')
 @click.option('--threads', '-t', type=int, default=10, help='Number of parallel threads')
 @click.option('--output', '-o', type=click.Path(), help='Save results to JSON file')
 @click.option('--verbose', '-v', is_flag=True, help='Verbose output')
-def scan(target, scan_type, range_port, threads, output, verbose):  #scans target for vulns using Nmap and Nuclei
+def scan(target, scan_type, port_range, threads, output, verbose):  #scans target for vulns using Nmap and Nuclei
 
     try:
-        target = validate_target(target)
-        port_range = validate_port_range(range_port)
+        target = validate(target)
+        port_range = validate_port(port_range)
 
         click.echo()
         click.echo(formatInfoMessage(f"Target: {target}"))
@@ -34,7 +34,7 @@ def scan(target, scan_type, range_port, threads, output, verbose):  #scans targe
             bar.update(100)
 
         click.echo()
-        click.echo(formatSuccessMessage("Scan completed successfully")}
+        click.echo(formatSuccessMessage("Scan completed successfully"))
 
         scan_id = "scan-202521204-001"
         click.echo(f"Scan ID: {click.style(scan_id, fg='yellow')}")
