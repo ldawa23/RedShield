@@ -20,32 +20,32 @@ def validate(target):
     if re.march(hostname, target):
         return target
 
-    raise click.BadParameter(f"'{target}' is not a valid IP address. Use: IP {192.168.1.1}, CIDR (10.0.0.0/24) or hostname (example.com)")
+    raise click.BadParameter(f"'{target}' is not a valid IP address. Use: IP (192.168.1.1), CIDR (10.0.0.0/24), or hostname (example.com)")
 
-def validate_port(range_port):
+def validate_port(port_range):
     #Validate port range format
     try:
-        if '-' in range_port:
-            parts = range_port.split('-')
+        if '-' in port_range:
+            parts = port_range.split('-')
                 
             if len(parts) == 2:
                 start = int(parts[0])
                 end = int(parts[1])
 
                 if 1 <= start <= end <= 65535:
-                    return range_port
-        elif range_port.isdigit():
-            port = int(range_port)
+                    return port_range
+        elif port_range.isdigit():
+            port = int(port_range)
 
             if 1<= port <= 65535:
-                return range_port
+                return port_range
 
-        elif ',' in range_port:
-            ports = [int(p.strip()) for p in range_port.split(',')]
+        elif ',' in port_range:
+            ports = [int(p.strip()) for p in port_range.split(',')]
             
             if all(1 <= p <= 65535 for p in ports):
-                return range_port
+                return port_range
     except ValueError:
         pass
 
-    raise click.BadParameter(f"'{range_port}' invalid. Use: single port (22), range (1-1000), or list (22,80,443)")
+    raise click.BadParameter(f"'{port_range}' invalid. Use: single port (22), range (1-1000), or list (22,80,443)")
