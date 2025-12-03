@@ -7,10 +7,10 @@ def formatSeverity(severity):
     color = color_map.get(severity, 'white')
     return click.style(f"[{severity}]", fg=color, bold=True)
 
-def formateVulnerability(vuln):
+def formatVulnerability(vuln):
     #Formatting vulnerability for display
     severity_str = format_severity(vuln.get('severity', 'LOW'))
-    vuln_type = click.style(vuln.get('type', 'UNKNOWN'), fg='gray')
+    vuln_type = click.style(vuln.get('type', 'UNKNOWN'), fg='cyan')
     port = vuln.get('port', 'N/A')
     return f"{severity_str} {vuln_type} (Port: {port})"
 
@@ -24,7 +24,7 @@ def formatErrorMessage(message):
 
 def formatInfoMessage(message):
     #Info message format
-    return click.style(f"[*] {message}", fg='gray')
+    return click.style(f"[*] {message}", fg='cyan')
 
 def formatWarningMessage(message):
     #Warning message format
