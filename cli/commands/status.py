@@ -1,5 +1,5 @@
 import click
-from redshield.cli.utils.formatters import formatStatus, formatInfoMessage
+from cli.utils.formatters import formatStatus, formatInfoMessage
 
 @click.command()
 @click.argument('scan_id', required=False)
