@@ -9,7 +9,7 @@ def formatSeverity(severity):
 
 def formatVulnerability(vuln):
     #Formatting vulnerability for display
-    severity_str = format_severity(vuln.get('severity', 'LOW'))
+    severity_str = formatSeverity(vuln.get('severity', 'LOW'))
     vuln_type = click.style(vuln.get('type', 'UNKNOWN'), fg='cyan')
     port = vuln.get('port', 'N/A')
     return f"{severity_str} {vuln_type} (Port: {port})"
