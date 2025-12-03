@@ -1,7 +1,7 @@
 import click
-from redshield.cli.utils.formatters import formatSuccessMessage, formatInfoMessage
+from cli.utils.formatters import formatSuccessMessage, formatInfoMessage
 
-@click.comman()
+@click.command()
 @click.argument('scan_id')
 @click.option('--format', '-f', type=click.Choice(['pdf', 'html', 'json']), default='pdf')
 @click.option('--output', '-o', type=click.Path())
