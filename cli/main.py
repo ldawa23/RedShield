@@ -1,91 +1,46 @@
 import click
-import ipaddress
-
-from models.scan import Scan
-from models.vulnerability import Vulnerability
-from core.constants import COMMON_PORTS, SEVERITY_LEVELS
-
-def validate_ip(ctx, param, value):
-    """
-    Click callback to validate that value is a valid IPv4 or IPv6 address.
-    If invalid it raises a click error and shows a nice message.
-    """
-    try:
-        ipaddress.ip_address(value) # this accepts both IPv4 and IPv6
-        return value
-    except ValueError:
-        raise click.BadParameter(f"'{value}' is not a valid IPv4 or IPv6 address")
+from cli.utils.formatters import formatSuccessMessage, formatErrorMessage
+from cli.commands.scan import scan
+from cli.commands.fix import fix
+from cli.commands.report import report
+from cli.commands.status import status
 
 @click.group()
+@click.version_option(version='1.0.0', prog_name="RedShield")
 def cli():
-    """Redshield - Red Team Remediation Toolkit."""
+    # RedShield - Red Team Remediation and Automation Toolkit
+    # Scans networks, finds vulnerabilities, and fix them automatically
+
     pass
 
 @cli.command()
-@click.argument("target", callback=validate_ip)
-def scan(target):
-    """Scan TARGET for vulnerabilities """
-    scan = Scan.new(target=target)
+def version():
+    #Show version and system info
+    import sys
+    import platform
 
-    vulns = [
-        Vulnerability(
-            id=1,
-            target=target,
-            vuln_type="EXPOSED_DATABASE_PORT",
-            service=COMMON_PORTS.get(27017, "UNKNOWN"),
-            port=27017,
-            severity="CRITICAL",
-            status="DISCOVERED",
-        ),
-        Vulnerability(
-            id=2,
-            target=target,
-            vuln_type="DEFAULT_CREDENTIALS",
-            service=COMMON_PORTS.get(22, "UNKNOWN"),
-            port=22,
-            severity="CRITICAL",
-            status="DISCOVERED",
-        ),
-        Vulnerability(
-            id=3,
-            target=target,
-            vuln_type="MISSING_HTTPS",
-            service=COMMON_PORTS.get(80, "UNKNOWN"),
-            port=80,
-            severity="HIGH",
-            status="DISCOVERED",
-        ),
-    ]
-
-    for v in vulns:
-        scan.vulnerabilities.append(v)
-
-    scan.status = "Completed"
-    click.echo(f"\n[SCAN]  Target: {scan.target}")
-    click.echo(f"✓ Scan ID: {scan.id}")
-    click.echo(f"  Status: {scan.status}")
-    click.echo(f"  Found: {len(scan.vulnerabilities)} issues\n")
-
-    for v in scan.vulnerabilities:
-        click.echo(
-                f"- ({v.severity}, score={v.priority_score()}) "
-                f"{v.vuln_type} on {v.service}:{v.port}"
-        )
-        
+    click.echo(f"RedShield v1.0.0")
+    click.echo(f"Python: {sys.version.split()[0]}")
+    click.echo(f"Platform: {platform.system()} {platform.release()}")
+    click.echo(f"Status: Ready")
 
 @cli.command()
-@click.argument("scan_id")
-def report(scan_id):
-    """Generate report for a scan"""
-    click.echo(f"[REPORT] Would generate report for scan: {scan_id}")
+def config():
+    #Show configuration
+    click.echo("RedShield Configuration:")
+    click.echo(" Database: MySQL (localhost:3306)")
+    click.echo(" Scanning tools: Nmap, Nuclei")
+    click.echo(" Remediation: Ansible")
 
-@cli.command()
-@click.argument("vuln_id")
-@click.option("--auto", is_flag=True, help="Automatically apply safe fixes")
-def fix(vuln_id, auto):
-    """Fix a specific  vulnerability"""
-    mode = "AUTO" if auto else "MANUAL"
-    click.echo(f"[FIX] Would {mode}-fix vulnerability: {vuln_id}")
+#Register commands
+cli.add_command(scan)
+cli.add_command(fix)
+cli.add_command(report)
+cli.add_command(status)
 
-if __name__ == "__main__":
-    cli()
+if __name__ == '__main__':
+    try:
+        cli()
+    except Exception as e:
+        click.echo(formatErrorMessage(str(e)), err=True)
+        raise
