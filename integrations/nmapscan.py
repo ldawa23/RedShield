@@ -58,6 +58,6 @@ def scan(target, ports="1-1000"):
 
 #To test
 if __name__ == "__main__":
-    results = scan_network("127.0.0.1", "22,80,443")
+    results = scan("127.0.0.1", "22,80,443")
     for port, service in results:
         print(f"Port {port}: {Service}")

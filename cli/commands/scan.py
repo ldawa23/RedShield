@@ -24,11 +24,29 @@ def scan(target, scan_type, port_range, threads, output, verbose):  #scans targe
 
         if verbose:
             click.echo(formatInfoMessage("Verbose Mode: ON"))
-        click.echo()
+
 
         click.echo(formatInfoMessage("Starting vulnerability scan..."))
 
-        vulnerabilities = [ {'severity': 'Critical', 'type': 'EXPOSED_DATABASE', 'port': 27017, 'service': 'MongoDB'}, {'severity': 'CRITICAL', 'type': 'DEFAULT_CREDENTIALS', 'port': 22, 'service': 'SSH'}, {'severity': 'HIGH', 'type': 'OUTDATED_SOFTWARE', 'port': 80, 'service': 'Apache'}, {'severity': 'HIGH', 'type': 'MISSING_HTTPS', 'port': 80, 'service': 'HTTP'}, {'severity': 'MEDIUM', 'type': 'WEAK_SSL_CIPHER', 'port': 443, 'service': 'HTTPS'}, ]
+        #Import Nmap results
+        from core.nmapvuln import scanrun
+
+        #Run real Nmap scan
+        scan_result = scanrun(target, ports=port_range)
+
+        #Get vulnerabilities from Nmap scan
+        vulnerabilities = [
+                {
+                    'severity': v.severity,
+                    'type': v.vuln_type,
+                    'port': v.port,
+                    'service': v.service,
+                }
+                for v in scan_result.vulnerabilities 
+        ]
+
+        #Using scan ID from scan object
+        scan_id = scan_result.id
 
         with click.progressbar(length=100, label='Scanning') as bar:
             bar.update(100)
