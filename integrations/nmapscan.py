@@ -40,3 +40,24 @@ def scan(target, ports="1-1000"):
         state = parts[1]            #open
         service = parts[2]          #ssh
 
+        #Saves the open ports only
+        if state != "open":
+            continue
+
+        #Get the discovered port number
+        try:
+            portnumber = int(port_prototype.split("/")[0])    # Example: 22/tcp -> 22
+        
+        except:
+            continue
+
+        #Add it to the list
+        open_ports.append((portnumber, service))
+
+    return open_ports
+
+#To test
+if __name__ == "__main__":
+    results = scan_network("127.0.0.1", "22,80,443")
+    for port, service in results:
+        print(f"Port {port}: {Service}")
