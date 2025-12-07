@@ -32,8 +32,8 @@ def scanrun(target, ports="1-1000"):
         print(f" [{severity}] {service}:{port}")
 
     #Mark the scan as done
-    scan.status = "Completed"
-    return scan
+    scan_new.status = "Completed"
+    return scan_new
 
 def risky_check(service, port):
     #Looks out for serivce and port, will decide if its risk or not
@@ -61,3 +61,8 @@ def risky_check(service, port):
 
     #Everythin else: medium
     return ("OPEN_PORT", "Medium")
+
+if __name__ == "__main__":
+    s = scanrun("127.0.0.1", "22,80")
+    print(type(s))
+    print(hasattr(s, "vulnerabilities"))
