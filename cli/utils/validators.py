@@ -17,7 +17,7 @@ def validate(target):
         pass
 
     hostname = r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'
-    if re.march(hostname, target):
+    if re.match(hostname, target):
         return target
 
     raise click.BadParameter(f"'{target}' is not a valid IP address. Use: IP (192.168.1.1), CIDR (10.0.0.0/24), or hostname (example.com)")
