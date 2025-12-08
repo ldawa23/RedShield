@@ -23,7 +23,7 @@ def fix(scan_id, auto, severity, dry_run):
             click.echo(formatSuccessMessage("No vulnerabilities to fix"))
             return
 
-        click.echo(formatInfoMessage(f"Found {lev(fixable)} vulnerabilities"))
+        click.echo(formatInfoMessage(f"Found {len(fixable)} vulnerabilities"))
         click.echo()
 
         for i, vuln in enumerate(fixable, 1):
