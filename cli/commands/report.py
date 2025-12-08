@@ -19,7 +19,7 @@ def report(scan_id, format, output):
         outputfile = output or f"report_{scan_id}.{format}"
 
         click.echo()
-        click.echo(formatSucessMessage(f"Report saved: {outputfile}"))
+        click.echo(formatSuccessMessage(f"Report saved: {outputfile}"))
         click.echo()
 
     except Exception as e:
