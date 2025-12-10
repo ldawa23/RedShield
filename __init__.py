@@ -1,2 +1,23 @@
-__app_name__ = "redshield"
-__version__ = "0.1.0"
+from database.connection import Base, engine, SessionLocal, get_db, get_session, init_db
+from database.models import User, ScanRecord, VulnerabilityRecord, RemediationRecord
+from database.models import UserRole, ScanStatus, VulnStatus
+
+__all__ = [
+    # Connection
+    "Base",
+    "engine", 
+    "SessionLocal",
+    "get_db",
+    "get_session",
+    "init_db",
+    # Models
+    "User",
+    "ScanRecord", 
+    "VulnerabilityRecord",
+    "RemediationRecord",
+    # Enums
+    "UserRole",
+    "ScanStatus",
+    "VulnStatus",
+]
+
