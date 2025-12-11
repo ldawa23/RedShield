@@ -16,9 +16,9 @@ class Settings:
         #db_type means what database to use like sqlite for simple and mysql for production
         self.db_type: str = os.getenv("DB_TYPE", "sqlite")
 
-        #database_ur;: Connection string for the database
+        #database_url: Connection string for the database
         #SQLite is file-based and MySQL requires a server
-        default_db_url: f"sqlite:///{self.base_dir}/redshield.db"
+        default_db_url = f"sqlite:///{self.base_dir}/redshield.db"
         self.database_url: str = os.getenv("DATABASE_URL", default_db_url)
 
         #Scanning settings
@@ -54,7 +54,7 @@ class Settings:
         self.api_host: str = os.getenv("API_HOST", "0.0.0.0")
 
         #api_port for finding port the API listens on
-        self.api.port: int = int(os.getenv("API_PORT", "8000"))
+        self.api_port: int = int(os.getenv("API_PORT", "8000"))
 
         #Logging settings
         #log_level for showing the logging done by verbose (DEBUG, INFO, WARNING, ERROR)
@@ -69,4 +69,5 @@ class Settings:
 
 
 settings = Settings()
+
 
