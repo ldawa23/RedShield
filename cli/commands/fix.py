@@ -7,6 +7,7 @@ from cli.utils.formatters import (
     formatWarningMessage, 
     formatSeverity
 )
+from cli.utils.auth import require_admin, get_current_user
 
 
 # Mapping of vulnerability types to fix information
@@ -124,12 +125,15 @@ def update_vulnerability_status(vuln_id, new_status, playbook_name=None):
 @click.option('--severity', '-s', type=click.Choice(['Critical', 'High', 'Medium', 'Low', 'All']), default='All', help='Minimum severity to fix')
 @click.option('--dry-run', is_flag=True, help='Show what would be fixed without making changes')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed fix information')
+@require_admin
 def fix(scan_id, auto, severity, dry_run, verbose):
     """
     Apply fixes to vulnerabilities from a scan.
     
+    REQUIRES ADMIN PRIVILEGES.
+    
     This command generates and executes Ansible playbooks to remediate
-    discovered vulnerabilities.
+    discovered vulnerabilities. Only admin users can apply fixes.
     
     \b
     Examples:
@@ -259,4 +263,5 @@ def fix(scan_id, auto, severity, dry_run, verbose):
     except Exception as e:
         click.echo(formatErrorMessage(f"Fix failed: {str(e)}"), err=True)
         raise click.Abort()
+
 
