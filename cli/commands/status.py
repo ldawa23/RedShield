@@ -9,7 +9,7 @@ from cli.utils.formatters import (
 
 
 def get_scan_from_database(scan_id):
-    """Retrieve a scan and its vulnerabilities from the database."""
+    """Retrieve a scan from database."""
     try:
         from database.connection import get_session
         from database.models import ScanRecord, VulnerabilityRecord
@@ -33,7 +33,7 @@ def get_scan_from_database(scan_id):
 
 
 def get_all_scans_from_database(limit=10):
-    """Retrieve recent scans from the database."""
+    """Retrieve recent scans from database."""
     try:
         from database.connection import get_session
         from database.models import ScanRecord, VulnerabilityRecord
@@ -60,35 +60,21 @@ def get_all_scans_from_database(limit=10):
 
 @click.command()
 @click.argument('scan_id', required=False)
-@click.option('--all', '-a', 'show_all', is_flag=True, help='Show all scans (not just recent)')
+@click.option('--all', '-a', 'show_all', is_flag=True, help='Show all scans')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed information')
 def status(scan_id, show_all, verbose):
-    """
-    Check scan status and view results.
-    
-    Without SCAN_ID: Shows list of recent scans.
-    With SCAN_ID: Shows detailed results of that scan.
-    
-    \b
-    Examples:
-        redshield status                    # List recent scans
-        redshield status scan-20251210-ABC  # Show specific scan
-        redshield status --all              # Show all scans
-    """
+    """Check scan status and view results."""
     click.echo()
     
     if scan_id:
-        # Show specific scan details
         scan, vulns = get_scan_from_database(scan_id)
         
         if not scan:
             click.echo(formatErrorMessage(f"Scan not found: {scan_id}"))
-            click.echo()
             click.echo(formatInfoMessage("Use 'redshield status' to see available scans"))
             click.echo()
             return
         
-        # Display scan info
         click.echo(formatInfoMessage(f"Scan Details: {click.style(scan.scan_id, fg='yellow')}"))
         click.echo("-" * 50)
         click.echo(f"  Target:      {scan.target}")
@@ -101,7 +87,6 @@ def status(scan_id, show_all, verbose):
         
         click.echo()
         
-        # Vulnerability summary
         if vulns:
             critical = sum(1 for v in vulns if v.severity.upper() == 'CRITICAL')
             high = sum(1 for v in vulns if v.severity.upper() == 'HIGH')
@@ -130,12 +115,9 @@ def status(scan_id, show_all, verbose):
                 click.echo(f"       Service: {vuln.service} | Port: {vuln.port}")
                 if verbose and vuln.description:
                     click.echo(f"       Description: {vuln.description}")
-                if vuln.status.value != "discovered":
-                    click.echo(f"       Status: {vuln.status.value}")
         else:
             click.echo(formatSuccessMessage("No vulnerabilities found in this scan"))
         
-        # Next steps
         unfixed = [v for v in vulns if v.status.value == "discovered"]
         if unfixed:
             click.echo()
@@ -144,13 +126,11 @@ def status(scan_id, show_all, verbose):
             click.echo(f"  • Generate:   redshield report {scan_id} --format pdf")
         
     else:
-        # Show list of all scans
         limit = 100 if show_all else 10
         scans = get_all_scans_from_database(limit=limit)
         
         if not scans:
             click.echo(formatInfoMessage("No scans found"))
-            click.echo()
             click.echo("Run a scan with: redshield scan <target>")
             click.echo()
             return
@@ -169,4 +149,3 @@ def status(scan_id, show_all, verbose):
         click.echo(formatInfoMessage("View details: redshield status <scan_id>"))
     
     click.echo()
-
