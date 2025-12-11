@@ -31,14 +31,6 @@ def check_nmap_installed():
 
 
 def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilities, status="completed"):
-    """
-    Save scan results to the database.
-    
-    This allows us to:
-    - Track scan history
-    - Generate reports later
-    - Apply fixes to specific scans
-    """
     try:
         from database.connection import get_session
         from database.models import ScanRecord, VulnerabilityRecord, ScanStatus, VulnStatus
@@ -82,40 +74,40 @@ def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilitie
 
 @click.command()
 @click.argument('target')
+@click.option('--scanner', '-S', type=click.Choice(['nmap', 'nuclei', 'zap', 'auto']), default='auto', help='Scanner to use: nmap (network), nuclei (web), zap (web active), auto (detect)')
 @click.option('--scan-type', '-s', type=click.Choice(['quick', 'full', 'deep']), default='quick', help='Scan intensity: quick (common ports), full (1-1000), deep (all ports)')
 @click.option('--port-range', '-p', default=None, help='Port range to scan (e.g., 22,80,443 or 1-1000)')
-@click.option('--threads', '-t', type=int, default=10, help='Number of parallel threads')
+@click.option('--templates', '-t', default=None, help='Nuclei templates (e.g., cves,sqli,xss)')
+@click.option('--severity', default=None, help='Filter by severity (e.g., critical,high)')
 @click.option('--output', '-o', type=click.Path(), help='Save results to JSON file')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed output')
-@click.option('--demo', is_flag=True, help='Use demo data (when Nmap not installed)')
-def scan(target, scan_type, port_range, threads, output, verbose, demo):
-    """
-    Scan a target for vulnerabilities.
-    
-    TARGET can be an IP address (192.168.1.100), hostname (example.com),
-    or CIDR range (192.168.1.0/24).
-    
-    \b
-    Examples:
-        redshield scan 192.168.1.100
-        redshield scan 192.168.1.100 --scan-type full
-        redshield scan example.com -p 22,80,443 -o results.json
-        redshield scan 127.0.0.1 --demo  # Use demo data
-    """
+@click.option('--demo', is_flag=True, help='Use demo data (when scanners not installed)')
+
+def scan(target, scanner, scan_type, port_range, templates, severity, output, verbose, demo):
     try:
-        # Validate inputs
-        target = validate(target)
+        # Auto-detect scanner based on target format
+        is_url = target.startswith(('http://', 'https://'))
         
-        # Set port range based on scan type if not specified
-        if port_range is None:
+        if scanner == 'auto':
+            scanner = 'nuclei' if is_url else 'nmap'
+        
+        # Validate inputs
+        if not is_url:
+            target = validate(target)
+        
+        # Set port range based on scan type if not specified (for nmap)
+        if scanner == 'nmap' and port_range is None:
             if scan_type == 'quick':
                 port_range = "22,80,443,3306,5432,27017,6379"  # Common vulnerable ports
             elif scan_type == 'full':
                 port_range = "1-1000"
             else:  # deep
                 port_range = "1-65535"
+            port_range = validate_port(port_range)
         
-        port_range = validate_port(port_range)
+        # Parse nuclei options
+        template_list = templates.split(',') if templates else None
+        severity_list = severity.split(',') if severity else None
         
         # Generate unique scan ID
         scan_id = generate_scan_id()
@@ -124,68 +116,196 @@ def scan(target, scan_type, port_range, threads, output, verbose, demo):
         click.echo()
         click.echo(formatInfoMessage(f"Scan ID: {click.style(scan_id, fg='yellow')}"))
         click.echo(formatInfoMessage(f"Target: {target}"))
-        click.echo(formatInfoMessage(f"Scan Type: {scan_type.upper()}"))
-        click.echo(formatInfoMessage(f"Port Range: {port_range}"))
+        click.echo(formatInfoMessage(f"Scanner: {scanner.upper()}"))
+        
+        if scanner == 'nmap':
+            click.echo(formatInfoMessage(f"Scan Type: {scan_type.upper()}"))
+            click.echo(formatInfoMessage(f"Port Range: {port_range}"))
+        else:
+            if template_list:
+                click.echo(formatInfoMessage(f"Templates: {', '.join(template_list)}"))
+            if severity_list:
+                click.echo(formatInfoMessage(f"Severity Filter: {', '.join(severity_list)}"))
         
         if verbose:
-            click.echo(formatInfoMessage(f"Threads: {threads}"))
             click.echo(formatInfoMessage("Verbose Mode: ON"))
         
         click.echo()
         
-        # Check if we should use demo mode
-        nmap_available = check_nmap_installed()
-        use_demo = demo or not nmap_available
-        
-        if use_demo and not demo:
-            click.echo(formatWarningMessage("Nmap not installed - using demo mode"))
-            click.echo(formatInfoMessage("Install Nmap for real scanning: https://nmap.org/download.html"))
+        # =====================
+        # NUCLEI SCANNER
+        # =====================
+        if scanner == 'nuclei':
+            from integrations.nuclei import check_nuclei_installed, run_nuclei_scan, generate_demo_nuclei_findings
+            
+            nuclei_available = check_nuclei_installed()
+            use_demo = demo or not nuclei_available
+            
+            if use_demo and not demo:
+                click.echo(formatWarningMessage("Nuclei not installed - using demo mode"))
+                click.echo(formatInfoMessage("Install Nuclei: go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"))
+                click.echo()
+            
+            click.echo(formatInfoMessage("Starting web application scan..."))
             click.echo()
-        
-        # Run scan
-        click.echo(formatInfoMessage("Starting vulnerability scan..."))
-        click.echo()
-        
-        if use_demo:
-            # Demo mode - use fake data for testing
-            from core.fake_data import build_demo_vulnerabilities
             
-            with click.progressbar(length=100, label='Scanning (demo)') as bar:
-                import time
-                for i in range(10):
-                    time.sleep(0.1)
-                    bar.update(10)
+            if use_demo:
+                with click.progressbar(length=100, label='Scanning (demo)') as bar:
+                    import time
+                    for i in range(10):
+                        time.sleep(0.15)
+                        bar.update(10)
+                
+                findings = generate_demo_nuclei_findings(target)
+                vulnerabilities = [
+                    {
+                        'severity': f['severity'].capitalize(),
+                        'type': f['name'],
+                        'port': f.get('port', 80),
+                        'service': 'http',
+                        'description': f['description'],
+                        'cve_id': f.get('cve_id'),
+                        'remediation': f.get('remediation', ''),
+                    }
+                    for f in findings
+                ]
+            else:
+                result = run_nuclei_scan(
+                    target,
+                    templates=template_list,
+                    severity=severity_list
+                )
+                
+                if not result['success']:
+                    click.echo(formatErrorMessage(f"Scan failed: {result['error']}"))
+                    raise click.Abort()
+                
+                vulnerabilities = [
+                    {
+                        'severity': f['severity'].capitalize(),
+                        'type': f['name'],
+                        'port': f.get('port', 80),
+                        'service': 'http',
+                        'description': f['description'],
+                        'cve_id': f.get('cve_id'),
+                        'remediation': f.get('remediation', ''),
+                    }
+                    for f in result['findings']
+                ]
+        
+        # =====================
+        # ZAP SCANNER
+        # =====================
+        elif scanner == 'zap':
+            from integrations.zap import check_zap_running, run_zap_scan, generate_demo_zap_findings
             
-            demo_vulns = build_demo_vulnerabilities(target)
-            vulnerabilities = [
-                {
-                    'severity': v.severity,
-                    'type': v.vuln_type,
-                    'port': v.port,
-                    'service': v.service,
-                    'description': f"Demo vulnerability on port {v.port}"
-                }
-                for v in demo_vulns
-            ]
+            zap_available = check_zap_running()
+            use_demo = demo or not zap_available
+            
+            if use_demo and not demo:
+                click.echo(formatWarningMessage("ZAP not running - using demo mode"))
+                click.echo(formatInfoMessage("Start ZAP: docker run -p 8080:8080 ghcr.io/zaproxy/zaproxy zap.sh -daemon"))
+                click.echo()
+            
+            click.echo(formatInfoMessage("Starting active web scan (ZAP)..."))
+            click.echo()
+            
+            if use_demo:
+                with click.progressbar(length=100, label='Scanning (demo)') as bar:
+                    import time
+                    for i in range(10):
+                        time.sleep(0.2)
+                        bar.update(10)
+                
+                findings = generate_demo_zap_findings(target)
+                vulnerabilities = [
+                    {
+                        'severity': f['severity'],
+                        'type': f['name'],
+                        'port': f.get('port', 80),
+                        'service': 'http',
+                        'description': f['description'],
+                        'cwe_id': f.get('cwe_id'),
+                        'solution': f.get('solution', ''),
+                    }
+                    for f in findings
+                ]
+            else:
+                result = run_zap_scan(target, scan_type="active")
+                
+                if not result['success']:
+                    click.echo(formatErrorMessage(f"Scan failed: {result['error']}"))
+                    raise click.Abort()
+                
+                vulnerabilities = [
+                    {
+                        'severity': f['severity'],
+                        'type': f['name'],
+                        'port': f.get('port', 80),
+                        'service': 'http',
+                        'description': f['description'],
+                        'cwe_id': f.get('cwe_id'),
+                        'solution': f.get('solution', ''),
+                    }
+                    for f in result['findings']
+                ]
+        
+        # =====================
+        # NMAP SCANNER
+        # =====================
         else:
-            # Real Nmap scan
-            from core.nmapvuln import scanrun
+            # Check if we should use demo mode
+            nmap_available = check_nmap_installed()
+            use_demo = demo or not nmap_available
             
-            with click.progressbar(length=100, label='Scanning') as bar:
-                bar.update(10)
-                scan_result = scanrun(target, ports=port_range)
-                bar.update(90)
+            if use_demo and not demo:
+                click.echo(formatWarningMessage("Nmap not installed - using demo mode"))
+                click.echo(formatInfoMessage("Install Nmap for real scanning: https://nmap.org/download.html"))
+                click.echo()
             
-            vulnerabilities = [
-                {
-                    'severity': v.severity,
-                    'type': v.vuln_type,
-                    'port': v.port,
-                    'service': v.service,
-                    'description': f"Discovered {v.service} on port {v.port}"
-                }
-                for v in scan_result.vulnerabilities
-            ]
+            click.echo(formatInfoMessage("Starting network scan..."))
+            click.echo()
+            
+            if use_demo:
+                # Demo mode - use fake data for testing
+                from core.fake_data import build_demo_vulnerabilities
+                
+                with click.progressbar(length=100, label='Scanning (demo)') as bar:
+                    import time
+                    for i in range(10):
+                        time.sleep(0.1)
+                        bar.update(10)
+                
+                demo_vulns = build_demo_vulnerabilities(target)
+                vulnerabilities = [
+                    {
+                        'severity': v.severity,
+                        'type': v.vuln_type,
+                        'port': v.port,
+                        'service': v.service,
+                        'description': f"Demo vulnerability on port {v.port}"
+                    }
+                    for v in demo_vulns
+                ]
+            else:
+                # Real Nmap scan
+                from core.nmapvuln import scanrun
+                
+                with click.progressbar(length=100, label='Scanning') as bar:
+                    bar.update(10)
+                    scan_result = scanrun(target, ports=port_range)
+                    bar.update(90)
+                
+                vulnerabilities = [
+                    {
+                        'severity': v.severity,
+                        'type': v.vuln_type,
+                        'port': v.port,
+                        'service': v.service,
+                        'description': f"Discovered {v.service} on port {v.port}"
+                    }
+                    for v in scan_result.vulnerabilities
+                ]
         
         click.echo()
         
@@ -224,7 +344,7 @@ def scan(target, scan_type, port_range, threads, output, verbose, demo):
         
         # Save to database
         click.echo()
-        saved = save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilities)
+        saved = save_scan_to_database(scan_id, target, port_range or "web-scan", scan_type, vulnerabilities)
         if saved:
             click.echo(formatSuccessMessage("Results saved to database"))
         
@@ -268,3 +388,4 @@ def scan(target, scan_type, port_range, threads, output, verbose, demo):
             import traceback
             click.echo(traceback.format_exc(), err=True)
         raise click.Abort()
+
