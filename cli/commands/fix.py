@@ -201,67 +201,110 @@ def fix(scan_id, auto, severity, dry_run, verbose):
         
         click.echo()
         
-        # Dry run mode
+        # Dry run mode - show detailed steps
         if dry_run:
-            click.echo(formatWarningMessage("DRY-RUN MODE - No changes will be made"))
+            click.echo(formatWarningMessage("DRY-RUN MODE - Showing what would be done"))
             click.echo()
-            click.echo("The following playbooks would be executed:")
+            
+            from core.remediation import execute_remediation, generate_remediation_evidence
+            
             for vuln in fixable:
-                playbook_info = REMEDIATION_PLAYBOOKS.get(vuln.vuln_type, {})
-                playbook_name = playbook_info.get("playbook", "generic_fix.yml")
-                click.echo(f"  • {playbook_name} -> {vuln.service}:{vuln.port}")
+                result = execute_remediation(
+                    vuln_id=vuln.id,
+                    vuln_type=vuln.vuln_type,
+                    target=scan.target,
+                    port=vuln.port or 0,
+                    service=vuln.service or "unknown",
+                    dry_run=True,
+                    verbose=verbose
+                )
+                
+                if verbose:
+                    click.echo()
+                    click.echo(click.style("Evidence Report:", fg='cyan'))
+                    click.echo(generate_remediation_evidence(result))
+            
+            click.echo()
+            click.echo(formatInfoMessage("Run without --dry-run to apply these fixes"))
             click.echo()
             return
         
         # Confirmation
         if not auto:
+            click.echo()
             if not click.confirm(f"Apply fixes to {len(fixable)} vulnerabilities?"):
                 click.echo("Cancelled.")
                 return
         
-        # Apply fixes
+        # Apply fixes with detailed tracking
         click.echo()
-        click.echo(formatInfoMessage("Applying remediation..."))
+        click.echo(formatInfoMessage("Applying remediation with verification..."))
         click.echo()
+        
+        from core.remediation import execute_remediation, save_remediation_to_db, generate_remediation_evidence
         
         fixed_count = 0
         failed_count = 0
+        all_evidence = []
         
-        with click.progressbar(fixable, label='Fixing', show_pos=True) as bar:
-            for vuln in bar:
-                playbook_info = REMEDIATION_PLAYBOOKS.get(vuln.vuln_type, {})
-                playbook_name = playbook_info.get("playbook", "generic_fix.yml")
-                
-                # In production, this would run actual Ansible playbooks
-                # For now, we simulate success and update the database
-                
-                # Simulate fix (in production: ansible-playbook playbook_name -i inventory)
-                import time
-                time.sleep(0.3)  # Simulate work
-                
-                # Update database
-                if update_vulnerability_status(vuln.id, "fixed", playbook_name):
-                    fixed_count += 1
-                else:
-                    failed_count += 1
+        for vuln in fixable:
+            result = execute_remediation(
+                vuln_id=vuln.id,
+                vuln_type=vuln.vuln_type,
+                target=scan.target,
+                port=vuln.port or 0,
+                service=vuln.service or "unknown",
+                dry_run=False,
+                verbose=verbose
+            )
+            
+            if result.success:
+                fixed_count += 1
+                save_remediation_to_db(result)
+                all_evidence.append(generate_remediation_evidence(result))
+            else:
+                failed_count += 1
         
         click.echo()
+        click.echo("=" * 60)
         
         # Summary
         if fixed_count > 0:
             click.echo(formatSuccessMessage(f"Successfully fixed {fixed_count} vulnerabilities"))
+            click.echo(formatInfoMessage("Each fix has been verified by re-scanning"))
         if failed_count > 0:
             click.echo(formatWarningMessage(f"Failed to fix {failed_count} vulnerabilities"))
         
+        # Save evidence report
+        if all_evidence:
+            evidence_file = f"reports/remediation_evidence_{scan_id}.txt"
+            try:
+                import os
+                os.makedirs("reports", exist_ok=True)
+                with open(evidence_file, 'w') as f:
+                    f.write("\n\n".join(all_evidence))
+                click.echo()
+                click.echo(formatSuccessMessage(f"Evidence report saved: {evidence_file}"))
+            except Exception as e:
+                click.echo(formatWarningMessage(f"Could not save evidence: {e}"))
+        
         click.echo()
         click.echo(formatInfoMessage("Next steps:"))
-        click.echo(f"  • Verify fixes:  redshield status {scan_id}")
-        click.echo(f"  • Re-scan:       redshield scan {scan.target}")
-        click.echo(f"  • Generate:      redshield report {scan_id} --format pdf")
+        click.echo(f"  • View evidence:   cat {evidence_file}")
+        click.echo(f"  • Verify fixes:    redshield status {scan_id}")
+        click.echo(f"  • Full re-scan:    redshield scan {scan.target}")
+        click.echo(f"  • Generate report: redshield report {scan_id} --format html")
         click.echo()
-        
+    
+    except click.Abort:
+        raise
+
     except Exception as e:
-        click.echo(formatErrorMessage(f"Fix failed: {str(e)}"), err=True)
+        click.echo()
+        click.echo(formatErrorMessage(f"Fix failed: {type(e).__name__}"))
+        click.echo(formatInfoMessage(f"Details: {str(e)[:100]}"))
+        click.echo()
+        click.echo(formatInfoMessage("Try running with --dry-run first to see detailed steps"))
         raise click.Abort()
 
 
