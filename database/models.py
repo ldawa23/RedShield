@@ -37,7 +37,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
-    scan = relationship("Scan Record", back_populates="user")
+    scans = relationship("ScanRecord", back_populates="user")
     def __repr__(self):
         return f"<User {self.username} ({self.role.value})>"
 
@@ -128,4 +128,5 @@ class RemediationRecord(Base):
     
     def __repr__(self):
         return f"<Remediation {self.playbook_name} ({self.status})>"
+
 
