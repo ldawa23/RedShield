@@ -247,6 +247,173 @@ def generate_json_report(data):
     return json.dumps(data, indent=2)
 
 
+def generate_pdf_report(data, output_path):
+    """
+    Generate a PDF report from scan data.
+    
+    Uses reportlab for PDF generation - pure Python, no external dependencies.
+    """
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    except ImportError:
+        return None  # reportlab not installed
+    
+    doc = SimpleDocTemplate(output_path, pagesize=A4, 
+                            rightMargin=72, leftMargin=72,
+                            topMargin=72, bottomMargin=72)
+    
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#667eea')
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=20,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    normal_style = styles['Normal']
+    
+    # Build PDF content
+    story = []
+    
+    # Title
+    story.append(Paragraph("🛡️ RedShield Security Report", title_style))
+    story.append(Paragraph("Vulnerability Assessment Report", styles['Normal']))
+    story.append(Spacer(1, 30))
+    
+    # Scan Information
+    story.append(Paragraph("Scan Information", heading_style))
+    
+    info_data = [
+        ["Scan ID:", data['scan_id']],
+        ["Target:", data['target']],
+        ["Scan Type:", data.get('scan_type', 'N/A').upper()],
+        ["Status:", data.get('status', 'N/A').upper()],
+        ["Started:", data.get('started_at', 'N/A')],
+        ["Completed:", data.get('completed_at', 'N/A')]
+    ]
+    
+    info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f8f9fa')),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#666666')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6'))
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 20))
+    
+    # Executive Summary
+    story.append(Paragraph("Executive Summary", heading_style))
+    
+    summary = data.get('summary', {})
+    summary_data = [
+        ["Severity", "Count"],
+        ["Critical", str(summary.get('critical', 0))],
+        ["High", str(summary.get('high', 0))],
+        ["Medium", str(summary.get('medium', 0))],
+        ["Low", str(summary.get('low', 0))],
+        ["Total", str(summary.get('total', 0))],
+        ["Fixed", str(summary.get('fixed', 0))]
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667eea')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ffcccc')),  # Critical
+        ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#ffddcc')),  # High
+        ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#ffffcc')),  # Medium
+        ('BACKGROUND', (0, 4), (-1, 4), colors.HexColor('#ccffcc')),  # Low
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6'))
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 20))
+    
+    # Vulnerabilities Detail
+    story.append(Paragraph("Vulnerability Details", heading_style))
+    
+    vuln_data = [["#", "Severity", "Type", "Service", "Port", "Status"]]
+    
+    severity_colors = {
+        'CRITICAL': colors.HexColor('#dc3545'),
+        'HIGH': colors.HexColor('#fd7e14'),
+        'MEDIUM': colors.HexColor('#ffc107'),
+        'LOW': colors.HexColor('#28a745')
+    }
+    
+    for i, v in enumerate(data.get('vulnerabilities', []), 1):
+        status = "✓ Fixed" if v.get('status') == 'fixed' else "○ Open"
+        vuln_data.append([
+            str(i),
+            v.get('severity', 'N/A').upper(),
+            v.get('type', 'N/A')[:30],
+            v.get('service', 'N/A'),
+            str(v.get('port', 'N/A')),
+            status
+        ])
+    
+    if len(vuln_data) > 1:
+        vuln_table = Table(vuln_data, colWidths=[0.4*inch, 0.8*inch, 2*inch, 1*inch, 0.6*inch, 0.8*inch])
+        
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667eea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dee2e6'))
+        ]
+        
+        # Color rows by severity
+        for i, v in enumerate(data.get('vulnerabilities', []), 1):
+            sev = v.get('severity', '').upper()
+            if sev in severity_colors:
+                table_style.append(('BACKGROUND', (1, i), (1, i), severity_colors[sev]))
+                table_style.append(('TEXTCOLOR', (1, i), (1, i), colors.white))
+        
+        vuln_table.setStyle(TableStyle(table_style))
+        story.append(vuln_table)
+    
+    story.append(Spacer(1, 30))
+    
+    # Footer
+    footer_text = f"Generated by RedShield - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    story.append(Paragraph(footer_text, ParagraphStyle('Footer', parent=normal_style, 
+                                                        alignment=TA_CENTER, textColor=colors.grey)))
+    
+    # Build PDF
+    doc.build(story)
+    return output_path
+
+
 @click.command()
 @click.argument('scan_id')
 @click.option('--format', '-f', 'report_format', type=click.Choice(['pdf', 'html', 'json']), default='html', help='Report format')
@@ -293,12 +460,8 @@ def report(scan_id, report_format, output, open_report):
                 content = generate_json_report(data)
                 extension = 'json'
             elif report_format == 'pdf':
-                # For PDF, we generate HTML first, then note that PDF requires weasyprint
-                content = generate_html_report(data)
-                extension = 'html'
-                click.echo()
-                click.echo(formatWarningMessage("PDF generation requires weasyprint library"))
-                click.echo(formatInfoMessage("Generating HTML report instead (can be printed to PDF)"))
+                extension = 'pdf'
+                content = None  # PDF is binary, handled separately
             
             bar.update(70)
         
@@ -315,8 +478,20 @@ def report(scan_id, report_format, output, open_report):
             )
         
         # Write report
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(content)
+        if report_format == 'pdf':
+            pdf_result = generate_pdf_report(data, output_file)
+            if pdf_result is None:
+                click.echo()
+                click.echo(formatWarningMessage("PDF generation requires reportlab library"))
+                click.echo(formatInfoMessage("Install with: pip install reportlab"))
+                click.echo(formatInfoMessage("Generating HTML report instead..."))
+                output_file = output_file.replace('.pdf', '.html')
+                content = generate_html_report(data)
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(content)
+        else:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(content)
         
         click.echo()
         click.echo(formatSuccessMessage(f"Report saved: {output_file}"))
@@ -345,4 +520,5 @@ def report(scan_id, report_format, output, open_report):
     except Exception as e:
         click.echo(formatErrorMessage(f"Report generation failed: {str(e)}"), err=True)
         raise click.Abort()
+
 
