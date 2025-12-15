@@ -31,6 +31,14 @@ def check_nmap_installed():
 
 
 def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilities, status="completed"):
+    """
+    Save scan results to the database.
+    
+    This allows us to:
+    - Track scan history
+    - Generate reports later
+    - Apply fixes to specific scans
+    """
     try:
         from database.connection import get_session
         from database.models import ScanRecord, VulnerabilityRecord, ScanStatus, VulnStatus
@@ -49,8 +57,14 @@ def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilitie
         session.add(scan_record)
         session.flush()  # Get the scan ID
         
-        # Add vulnerabilities
+        # Import security mappings for OWASP/MITRE enrichment
+        from core.security_mappings import get_security_mapping
+        
+        # Add vulnerabilities with security framework mappings
         for vuln in vulnerabilities:
+            # Get OWASP/MITRE/CWE mappings
+            mapping = get_security_mapping(vuln['type'])
+            
             vuln_record = VulnerabilityRecord(
                 scan_id=scan_record.id,
                 vuln_type=vuln['type'],
@@ -59,6 +73,10 @@ def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilitie
                 severity=vuln['severity'],
                 status=VulnStatus.DISCOVERED,
                 description=vuln.get('description', ''),
+                # Add security framework mappings
+                owasp_category=f"{mapping.owasp_id} - {mapping.owasp_category}" if mapping.owasp_id else None,
+                mitre_id=mapping.mitre_id,
+                cve_id=mapping.cwe_id,  # Using CWE as fallback, real CVE lookup would need API
                 fix_available=True  # We'll have Ansible playbooks for common issues
             )
             session.add(vuln_record)
@@ -82,8 +100,29 @@ def save_scan_to_database(scan_id, target, port_range, scan_type, vulnerabilitie
 @click.option('--output', '-o', type=click.Path(), help='Save results to JSON file')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed output')
 @click.option('--demo', is_flag=True, help='Use demo data (when scanners not installed)')
-
 def scan(target, scanner, scan_type, port_range, templates, severity, output, verbose, demo):
+    """
+    Scan a target for vulnerabilities.
+    
+    TARGET can be an IP address (192.168.1.100), hostname (example.com),
+    URL (http://localhost/dvwa), or CIDR range (192.168.1.0/24).
+    
+    \b
+    Scanners:
+        nmap   - Network/port scanning (IPs, hostnames)
+        nuclei - Template-based web scanning (fast)
+        zap    - Active web scanning with spider (thorough)
+        auto   - Auto-detect based on target format
+    
+    \b
+    Examples:
+        redshield scan 192.168.1.100                    # Network scan (nmap)
+        redshield scan http://localhost/dvwa            # Web scan (nuclei)
+        redshield scan http://localhost/dvwa -S zap    # Active web scan (ZAP)
+        redshield scan http://localhost/dvwa --demo     # Demo mode for DVWA
+        redshield scan example.com -S nuclei -t sqli    # Nuclei with SQLi templates
+        redshield scan 127.0.0.1 -s full -p 1-1000     # Full network scan
+    """
     try:
         # Auto-detect scanner based on target format
         is_url = target.startswith(('http://', 'https://'))
