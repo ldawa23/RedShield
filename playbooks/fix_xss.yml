@@ -1,0 +1,166 @@
+---
+# RedShield Ansible Playbook: Fix XSS Vulnerability
+# Applies security headers and configurations to prevent Cross-Site Scripting
+#
+# Usage: ansible-playbook fix_xss.yml -e "target_host=192.168.1.100"
+
+- name: Fix XSS Vulnerability
+  hosts: "{{ target_host | default('localhost') }}"
+  become: yes
+  vars:
+    web_root: "{{ web_root | default('/var/www/html') }}"
+    backup_dir: "/tmp/redshield_backups"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Backup Apache configuration
+      copy:
+        src: /etc/apache2/apache2.conf
+        dest: "{{ backup_dir }}/apache2.conf.bak.{{ ansible_date_time.date }}"
+        remote_src: yes
+      ignore_errors: yes
+
+    - name: Find files with potential XSS vulnerabilities
+      shell: |
+        grep -r -l "echo.*\$_GET\|echo.*\$_POST\|echo.*\$_REQUEST\|print.*\$_" {{ web_root }} --include="*.php" 2>/dev/null || true
+      register: vulnerable_files
+      changed_when: false
+
+    - name: Display potentially vulnerable files
+      debug:
+        msg: "Files with potential XSS: {{ vulnerable_files.stdout_lines }}"
+      when: vulnerable_files.stdout != ""
+
+    # Security Headers Configuration
+    - name: Enable Apache headers module
+      apache2_module:
+        name: headers
+        state: present
+      notify: Restart Apache
+      ignore_errors: yes
+
+    - name: Add security headers to Apache
+      copy:
+        content: |
+          # RedShield Security Headers Configuration
+          # Prevents XSS and other client-side attacks
+          
+          # Content Security Policy - Restricts resource loading
+          Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-ancestors 'self'"
+          
+          # X-XSS-Protection - Enable browser XSS filter
+          Header always set X-XSS-Protection "1; mode=block"
+          
+          # X-Content-Type-Options - Prevent MIME sniffing
+          Header always set X-Content-Type-Options "nosniff"
+          
+          # X-Frame-Options - Prevent clickjacking
+          Header always set X-Frame-Options "SAMEORIGIN"
+          
+          # Referrer-Policy - Control referrer information
+          Header always set Referrer-Policy "strict-origin-when-cross-origin"
+          
+          # Permissions-Policy - Disable unnecessary features
+          Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        dest: /etc/apache2/conf-available/security-headers.conf
+        mode: '0644'
+      notify: Restart Apache
+      ignore_errors: yes
+
+    - name: Enable security headers configuration
+      shell: a2enconf security-headers
+      ignore_errors: yes
+      notify: Restart Apache
+
+    # PHP Configuration for XSS Prevention
+    - name: Configure PHP output buffering
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^output_buffering'
+        line: 'output_buffering = 4096'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Set PHP default charset
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^default_charset'
+        line: 'default_charset = "UTF-8"'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    # ModSecurity XSS Rules
+    - name: Add XSS protection rules to ModSecurity
+      copy:
+        content: |
+          # RedShield XSS Protection Rules
+          SecRule ARGS "@detectXSS" "id:2001,phase:2,deny,status:403,msg:'XSS Attack Detected'"
+          SecRule REQUEST_BODY "@detectXSS" "id:2002,phase:2,deny,status:403,msg:'XSS in Request Body'"
+          SecRule ARGS "<script" "id:2003,phase:2,deny,status:403,msg:'Script Tag Detected'"
+          SecRule ARGS "javascript:" "id:2004,phase:2,deny,status:403,msg:'JavaScript Protocol Detected'"
+          SecRule ARGS "on\w+\s*=" "id:2005,phase:2,deny,status:403,msg:'Event Handler Detected'"
+        dest: /etc/modsecurity/rules/redshield_xss.conf
+        mode: '0644'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    # Nginx configuration (if used)
+    - name: Check if Nginx is installed
+      stat:
+        path: /etc/nginx/nginx.conf
+      register: nginx_check
+
+    - name: Add security headers to Nginx
+      blockinfile:
+        path: /etc/nginx/nginx.conf
+        insertafter: 'http {'
+        block: |
+          # RedShield Security Headers
+          add_header X-XSS-Protection "1; mode=block" always;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header X-Frame-Options "SAMEORIGIN" always;
+          add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'" always;
+        marker: "# {mark} REDSHIELD SECURITY HEADERS"
+      when: nginx_check.stat.exists
+      notify: Restart Nginx
+      ignore_errors: yes
+
+    - name: Generate XSS remediation report
+      copy:
+        content: |
+          RedShield XSS Remediation Report
+          =================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          
+          Actions Taken:
+          1. Added Content-Security-Policy header
+          2. Enabled X-XSS-Protection header
+          3. Set X-Content-Type-Options to nosniff
+          4. Configured X-Frame-Options
+          5. Added ModSecurity XSS detection rules
+          
+          Files requiring manual review: {{ vulnerable_files.stdout_lines | length }}
+          
+          IMPORTANT: Manual code changes required.
+          Replace: echo $_GET['name'];
+          With:    echo htmlspecialchars($_GET['name'], ENT_QUOTES, 'UTF-8');
+        dest: "{{ backup_dir }}/xss_remediation_report_{{ ansible_date_time.date }}.txt"
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+      ignore_errors: yes
+
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+      ignore_errors: yes

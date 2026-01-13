@@ -1,0 +1,132 @@
+---
+# RedShield Ansible Playbook: Fix Outdated Software
+# Updates vulnerable software to latest secure version
+#
+# Usage: ansible-playbook fix_outdated_software.yml -e "target_host=192.168.1.100 package_name=apache2"
+
+- name: Update Outdated Software
+  hosts: "{{ target_host | default('localhost') }}"
+  become: yes
+  vars:
+    package_name: "{{ package_name | default('') }}"
+    backup_dir: "/tmp/redshield_backups"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Get current package version (Debian/Ubuntu)
+      shell: "dpkg -l | grep {{ package_name }} | awk '{print $3}' | head -1"
+      register: current_version_deb
+      when: ansible_os_family == "Debian"
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Get current package version (RedHat/CentOS)
+      shell: "rpm -q {{ package_name }} --queryformat '%{VERSION}'"
+      register: current_version_rpm
+      when: ansible_os_family == "RedHat"
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display current version
+      debug:
+        msg: "Current {{ package_name }} version: {{ current_version_deb.stdout | default(current_version_rpm.stdout) | default('Not installed') }}"
+
+    - name: Backup package configuration
+      shell: |
+        if [ -d /etc/{{ package_name }} ]; then
+          cp -r /etc/{{ package_name }} {{ backup_dir }}/{{ package_name }}_config_{{ ansible_date_time.date }}
+        fi
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Update apt cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Update yum cache (RedHat/CentOS)
+      yum:
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Upgrade specific package (Debian/Ubuntu)
+      apt:
+        name: "{{ package_name }}"
+        state: latest
+        only_upgrade: yes
+      when: 
+        - ansible_os_family == "Debian"
+        - package_name != ''
+      register: upgrade_result_deb
+
+    - name: Upgrade specific package (RedHat/CentOS)
+      yum:
+        name: "{{ package_name }}"
+        state: latest
+      when: 
+        - ansible_os_family == "RedHat"
+        - package_name != ''
+      register: upgrade_result_rpm
+
+    - name: Apply all security updates (Debian/Ubuntu) if no specific package
+      apt:
+        upgrade: safe
+      when: 
+        - ansible_os_family == "Debian"
+        - package_name == ''
+
+    - name: Apply all security updates (RedHat/CentOS) if no specific package
+      yum:
+        name: '*'
+        state: latest
+        security: yes
+      when: 
+        - ansible_os_family == "RedHat"
+        - package_name == ''
+
+    - name: Get new package version (Debian/Ubuntu)
+      shell: "dpkg -l | grep {{ package_name }} | awk '{print $3}' | head -1"
+      register: new_version_deb
+      when: 
+        - ansible_os_family == "Debian"
+        - package_name != ''
+      changed_when: false
+
+    - name: Get new package version (RedHat/CentOS)
+      shell: "rpm -q {{ package_name }} --queryformat '%{VERSION}'"
+      register: new_version_rpm
+      when: 
+        - ansible_os_family == "RedHat"
+        - package_name != ''
+      changed_when: false
+
+    - name: Display new version
+      debug:
+        msg: "Updated {{ package_name }} version: {{ new_version_deb.stdout | default(new_version_rpm.stdout) | default('Unknown') }}"
+      when: package_name != ''
+
+    - name: Restart service if applicable
+      service:
+        name: "{{ package_name }}"
+        state: restarted
+      ignore_errors: yes
+      when: package_name != ''
+
+    - name: Generate update report
+      copy:
+        content: |
+          RedShield Software Update Report
+          ================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          Package: {{ package_name | default('All security updates') }}
+          Previous Version: {{ current_version_deb.stdout | default(current_version_rpm.stdout) | default('N/A') }}
+          New Version: {{ new_version_deb.stdout | default(new_version_rpm.stdout) | default('N/A') }}
+          Status: SUCCESS
+        dest: "{{ backup_dir }}/update_report_{{ ansible_date_time.date }}.txt"

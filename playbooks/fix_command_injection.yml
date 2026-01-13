@@ -1,0 +1,179 @@
+---
+# RedShield Ansible Playbook: Fix Command Injection
+# Secures system against OS command injection attacks
+#
+# Usage: ansible-playbook fix_command_injection.yml -e "target_host=192.168.1.100"
+
+- name: Fix Command Injection Vulnerability
+  hosts: "{{ target_host | default('localhost') }}"
+  become: yes
+  vars:
+    web_root: "{{ web_root | default('/var/www/html') }}"
+    backup_dir: "/tmp/redshield_backups"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Backup web application
+      archive:
+        path: "{{ web_root }}"
+        dest: "{{ backup_dir }}/webapp_backup_cmdi_{{ ansible_date_time.date }}.tar.gz"
+        format: gz
+      ignore_errors: yes
+
+    - name: Find files with dangerous functions
+      shell: |
+        grep -r -l "system(\|exec(\|shell_exec(\|passthru(\|popen(\|proc_open(" {{ web_root }} --include="*.php" 2>/dev/null || true
+      register: dangerous_files
+      changed_when: false
+
+    - name: Display files with dangerous functions
+      debug:
+        msg: "Files with dangerous functions: {{ dangerous_files.stdout_lines }}"
+      when: dangerous_files.stdout != ""
+
+    - name: Find command injection patterns
+      shell: |
+        grep -r -n "system.*\$_\|exec.*\$_\|shell_exec.*\$_\|passthru.*\$_" {{ web_root }} --include="*.php" 2>/dev/null | head -20 || true
+      register: injection_patterns
+      changed_when: false
+
+    - name: Display injection patterns found
+      debug:
+        msg: "{{ injection_patterns.stdout_lines }}"
+      when: injection_patterns.stdout != ""
+
+    # PHP Security Configuration
+    - name: Disable dangerous PHP functions
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^disable_functions'
+        line: 'disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source,pcntl_exec'
+        backup: yes
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Enable PHP open_basedir restriction
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^open_basedir'
+        line: 'open_basedir = {{ web_root }}:/tmp'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Disable PHP allow_url_fopen
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^allow_url_fopen'
+        line: 'allow_url_fopen = Off'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Disable PHP allow_url_include
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^allow_url_include'
+        line: 'allow_url_include = Off'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    # AppArmor/SELinux hardening
+    - name: Check if AppArmor is installed
+      stat:
+        path: /etc/apparmor.d
+      register: apparmor_check
+
+    - name: Create Apache AppArmor profile
+      copy:
+        content: |
+          # RedShield Apache AppArmor Profile
+          /usr/sbin/apache2 {
+            # Deny dangerous operations
+            deny /bin/** x,
+            deny /usr/bin/** x,
+            deny /sbin/** x,
+            deny /usr/sbin/** x,
+            
+            # Allow web content
+            {{ web_root }}/** r,
+            
+            # Allow necessary operations
+            /var/log/apache2/** w,
+            /var/run/apache2/** rw,
+          }
+        dest: /etc/apparmor.d/local/usr.sbin.apache2
+        mode: '0644'
+      when: apparmor_check.stat.exists
+      ignore_errors: yes
+
+    # ModSecurity Command Injection Rules
+    - name: Add command injection protection rules
+      copy:
+        content: |
+          # RedShield Command Injection Protection Rules
+          SecRule ARGS "@rx [\;\|\`]" "id:3001,phase:2,deny,status:403,msg:'Command Separator Detected'"
+          SecRule ARGS "@rx \$\(" "id:3002,phase:2,deny,status:403,msg:'Command Substitution Detected'"
+          SecRule ARGS "@rx >\s*/dev/tcp" "id:3003,phase:2,deny,status:403,msg:'Reverse Shell Attempt'"
+          SecRule ARGS "@contains /etc/passwd" "id:3004,phase:2,deny,status:403,msg:'Passwd File Access'"
+          SecRule ARGS "@rx (wget|curl|nc|bash|sh|python|perl|ruby)\s" "id:3005,phase:2,deny,status:403,msg:'Dangerous Command'"
+        dest: /etc/modsecurity/rules/redshield_cmdi.conf
+        mode: '0644'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    # Restrict web server user permissions
+    - name: Ensure www-data has minimal permissions
+      user:
+        name: www-data
+        shell: /usr/sbin/nologin
+      ignore_errors: yes
+
+    - name: Set restrictive permissions on web root
+      file:
+        path: "{{ web_root }}"
+        owner: root
+        group: www-data
+        mode: '0755'
+        recurse: yes
+      ignore_errors: yes
+
+    - name: Remove write permissions for web server on PHP files
+      shell: |
+        find {{ web_root }} -name "*.php" -exec chmod 644 {} \;
+      ignore_errors: yes
+
+    - name: Generate command injection remediation report
+      copy:
+        content: |
+          RedShield Command Injection Remediation Report
+          ===============================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          
+          Actions Taken:
+          1. Disabled dangerous PHP functions (exec, system, shell_exec, etc.)
+          2. Enabled open_basedir restriction
+          3. Disabled allow_url_fopen and allow_url_include
+          4. Added ModSecurity command injection rules
+          5. Restricted web server user permissions
+          
+          Files requiring manual review: {{ dangerous_files.stdout_lines | length }}
+          
+          IMPORTANT: Manual code fixes required.
+          
+          BAD:  system('ping ' . $_GET['ip']);
+          GOOD: if(filter_var($_GET['ip'], FILTER_VALIDATE_IP)) {
+                    system('ping -c 4 ' . escapeshellarg($_GET['ip']));
+                }
+        dest: "{{ backup_dir }}/cmdi_remediation_report_{{ ansible_date_time.date }}.txt"
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+      ignore_errors: yes

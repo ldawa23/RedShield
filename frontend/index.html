@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedShield | Advanced Security Operations Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="scan-lines"></div>
+    
+    <!-- LOGIN PAGE -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-wrapper">
+            <div class="logo-container">
+                <div class="shield-icon"><i class="fas fa-shield-halved"></i><div class="shield-pulse"></div></div>
+                <h1 class="logo-text">RED<span>SHIELD</span></h1>
+                <p class="logo-tagline">Advanced Security Operations Center</p>
+            </div>
+            <div id="login-box" class="auth-box">
+                <div class="auth-header">
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" data-tab="login">SIGN IN</button>
+                        <button class="auth-tab" data-tab="register">REGISTER</button>
+                    </div>
+                </div>
+                <form id="login-form" class="auth-form active">
+                    <div class="input-group"><div class="input-icon"><i class="fas fa-user"></i></div><input type="text" id="login-username" placeholder="Username" required><div class="input-line"></div></div>
+                    <div class="input-group"><div class="input-icon"><i class="fas fa-lock"></i></div><input type="password" id="login-password" placeholder="Password" required><div class="input-line"></div></div>
+                    <div id="login-error" class="auth-error"></div>
+                    <button type="submit" class="auth-btn"><span>ACCESS SYSTEM</span><i class="fas fa-arrow-right"></i></button>
+                </form>
+                <form id="register-form" class="auth-form">
+                    <div class="input-group"><div class="input-icon"><i class="fas fa-user-plus"></i></div><input type="text" id="register-username" placeholder="Username" required minlength="3"><div class="input-line"></div></div>
+                    <div class="input-group"><div class="input-icon"><i class="fas fa-envelope"></i></div><input type="email" id="register-email" placeholder="Email" required><div class="input-line"></div></div>
+                    <div class="input-group"><div class="input-icon"><i class="fas fa-key"></i></div><input type="password" id="register-password" placeholder="Password" required minlength="6"><div class="input-line"></div></div>
+                    <div id="register-error" class="auth-error"></div>
+                    <div id="register-success" class="auth-success"></div>
+                    <button type="submit" class="auth-btn register-btn"><span>CREATE ACCOUNT</span><i class="fas fa-user-shield"></i></button>
+                </form>
+                <div class="auth-footer"><div class="cyber-line"></div><p>Demo: admin/admin123 or user/user123</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboard-container" class="dashboard-container hidden">
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-mini"><i class="fas fa-shield-halved"></i></div>
+                <div class="logo-full"><span class="red">RED</span><span>SHIELD</span></div>
+                <button id="sidebar-toggle" class="sidebar-toggle"><i class="fas fa-angles-left"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">MAIN</span>
+                    <ul>
+                        <li class="nav-item active" data-page="dashboard"><i class="fas fa-satellite-dish"></i><span>Command Center</span><div class="nav-indicator"></div></li>
+                        <li class="nav-item" data-page="scans"><i class="fas fa-radar"></i><span>Scan Operations</span></li>
+                        <li class="nav-item" data-page="vulnerabilities"><i class="fas fa-bug"></i><span>Threat Analysis</span></li>
+                        <li class="nav-item" data-page="worldmap"><i class="fas fa-globe"></i><span>Global Threat Map</span></li>
+                    </ul>
+                </div>
+                <div class="nav-section">
+                    <span class="nav-section-title">OPERATIONS</span>
+                    <ul>
+                        <li class="nav-item" data-page="remediation"><i class="fas fa-wrench"></i><span>Auto Remediation</span></li>
+                        <li class="nav-item" data-page="reports"><i class="fas fa-file-shield"></i><span>Intel Reports</span></li>
+                        <li class="nav-item" data-page="analytics"><i class="fas fa-chart-line"></i><span>Analytics</span></li>
+                    </ul>
+                </div>
+                <div class="nav-section admin-section hidden">
+                    <span class="nav-section-title">ADMIN CONTROL</span>
+                    <ul>
+                        <li class="nav-item" data-page="admin"><i class="fas fa-user-shield"></i><span>Admin Panel</span></li>
+                        <li class="nav-item" data-page="users"><i class="fas fa-users-gear"></i><span>User Management</span></li>
+                        <li class="nav-item" data-page="activity"><i class="fas fa-timeline"></i><span>Activity Monitor</span></li>
+                        <li class="nav-item" data-page="settings"><i class="fas fa-sliders"></i><span>System Config</span></li>
+                    </ul>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar"><i class="fas fa-user-astronaut"></i><span class="status-dot online"></span></div>
+                    <div class="user-info"><span id="sidebar-username" class="user-name">Operator</span><span id="sidebar-role" class="user-role">USER</span></div>
+                </div>
+                <button id="logout-btn" class="logout-btn"><i class="fas fa-power-off"></i></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left"><div class="breadcrumb"><i class="fas fa-terminal"></i><span id="current-page-name">Command Center</span></div></div>
+                <div class="header-center"><div class="search-box"><i class="fas fa-search"></i><input type="text" id="global-search" placeholder="Search targets, vulnerabilities, scans..."><kbd>Ctrl+K</kbd></div></div>
+                <div class="header-right">
+                    <div class="header-stats">
+                        <div class="mini-stat critical"><i class="fas fa-skull-crossbones"></i><span id="header-critical">0</span></div>
+                        <div class="mini-stat warning"><i class="fas fa-exclamation-triangle"></i><span id="header-high">0</span></div>
+                    </div>
+                    <button class="header-btn" id="notifications-btn"><i class="fas fa-bell"></i><span class="notification-badge">3</span></button>
+                    <button class="header-btn" id="quick-scan-btn"><i class="fas fa-crosshairs"></i><span>Quick Scan</span></button>
+                    <div class="live-clock"><i class="fas fa-satellite"></i><span id="live-time">00:00:00</span></div>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <!-- COMMAND CENTER -->
+                <div id="page-dashboard" class="page active">
+                    <div class="threat-level-banner">
+                        <div class="threat-indicator"><div class="threat-icon pulse"><i class="fas fa-radiation"></i></div><div class="threat-info"><span class="threat-label">CURRENT THREAT LEVEL</span><span id="threat-level" class="threat-value high">ELEVATED</span></div></div>
+                        <div class="threat-stats">
+                            <div class="threat-stat"><span class="stat-value" id="active-threats">12</span><span class="stat-label">Active Threats</span></div>
+                            <div class="threat-stat"><span class="stat-value" id="monitored-assets">48</span><span class="stat-label">Monitored Assets</span></div>
+                            <div class="threat-stat"><span class="stat-value" id="blocked-attacks">156</span><span class="stat-label">Attacks Blocked</span></div>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card gradient-red"><div class="stat-card-bg"></div><div class="stat-icon"><i class="fas fa-crosshairs"></i></div><div class="stat-content"><span class="stat-number" id="stat-total-scans">0</span><span class="stat-label">Total Scans</span><div class="stat-trend up"><i class="fas fa-arrow-up"></i><span>12% this week</span></div></div><div class="stat-chart"><canvas id="mini-chart-scans"></canvas></div></div>
+                        <div class="stat-card gradient-orange"><div class="stat-card-bg"></div><div class="stat-icon"><i class="fas fa-bug"></i></div><div class="stat-content"><span class="stat-number" id="stat-total-vulns">0</span><span class="stat-label">Vulnerabilities</span><div class="stat-trend down"><i class="fas fa-arrow-down"></i><span>8% remediated</span></div></div><div class="stat-chart"><canvas id="mini-chart-vulns"></canvas></div></div>
+                        <div class="stat-card gradient-green"><div class="stat-card-bg"></div><div class="stat-icon"><i class="fas fa-shield-check"></i></div><div class="stat-content"><span class="stat-number" id="stat-fixed">0</span><span class="stat-label">Fixed Issues</span><div class="stat-trend up"><i class="fas fa-arrow-up"></i><span>24% increase</span></div></div><div class="stat-chart"><canvas id="mini-chart-fixed"></canvas></div></div>
+                        <div class="stat-card gradient-blue"><div class="stat-card-bg"></div><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-content"><span class="stat-number" id="stat-pending">0</span><span class="stat-label">Pending</span><div class="stat-trend neutral"><i class="fas fa-minus"></i><span>Needs attention</span></div></div><div class="stat-chart"><canvas id="mini-chart-pending"></canvas></div></div>
+                    </div>
+                    <div class="charts-row">
+                        <div class="chart-card"><div class="chart-header"><h3><i class="fas fa-chart-pie"></i> Severity Distribution</h3><div class="chart-actions"><button class="chart-btn active" data-period="week">Week</button><button class="chart-btn" data-period="month">Month</button><button class="chart-btn" data-period="year">Year</button></div></div><div class="chart-body"><canvas id="severity-donut-chart"></canvas></div><div class="chart-legend" id="severity-legend"></div></div>
+                        <div class="chart-card wide"><div class="chart-header"><h3><i class="fas fa-chart-line"></i> Vulnerability Trends</h3><div class="chart-actions"><select id="trend-filter" class="chart-select"><option value="all">All Severities</option><option value="critical">Critical Only</option><option value="high">High Only</option></select></div></div><div class="chart-body"><canvas id="trend-line-chart"></canvas></div></div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="activity-card"><div class="card-header"><h3><i class="fas fa-wave-pulse"></i> Live Activity Feed</h3><span class="live-indicator"><span class="live-dot"></span>LIVE</span></div><div class="activity-feed" id="activity-feed"></div></div>
+                        <div class="quick-actions-card"><div class="card-header"><h3><i class="fas fa-bolt"></i> Quick Actions</h3></div><div class="quick-actions-grid">
+                            <button class="quick-action" data-action="new-scan"><div class="action-icon"><i class="fas fa-radar"></i></div><span>New Scan</span></button>
+                            <button class="quick-action" data-action="fix-critical"><div class="action-icon critical"><i class="fas fa-skull"></i></div><span>Fix Critical</span></button>
+                            <button class="quick-action" data-action="generate-report"><div class="action-icon"><i class="fas fa-file-export"></i></div><span>Generate Report</span></button>
+                            <button class="quick-action" data-action="export-data"><div class="action-icon"><i class="fas fa-download"></i></div><span>Export Data</span></button>
+                            <button class="quick-action" data-action="schedule-scan"><div class="action-icon"><i class="fas fa-calendar-plus"></i></div><span>Schedule Scan</span></button>
+                            <button class="quick-action" data-action="view-logs"><div class="action-icon"><i class="fas fa-terminal"></i></div><span>View Logs</span></button>
+                        </div></div>
+                        <div class="top-vulns-card"><div class="card-header"><h3><i class="fas fa-ranking-star"></i> Critical Vulnerabilities</h3><a href="#" class="view-all" data-page="vulnerabilities">View All</a></div><div class="vulns-list" id="top-vulns-list"></div></div>
+                    </div>
+                </div>
+
+                <!-- SCAN OPERATIONS -->
+                <div id="page-scans" class="page">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-radar"></i> Scan Operations</h2><p>Launch and manage security scans across your infrastructure</p></div><button class="primary-btn" id="new-scan-btn"><i class="fas fa-plus"></i><span>New Scan</span></button></div>
+                    <div class="scan-launch-panel">
+                        <div class="scan-type-selector">
+                            <button class="scan-type active" data-type="nmap"><i class="fas fa-network-wired"></i><span>Network Scan</span><small>Nmap</small></button>
+                            <button class="scan-type" data-type="nuclei"><i class="fas fa-atom"></i><span>Web Vuln Scan</span><small>Nuclei</small></button>
+                            <button class="scan-type" data-type="zap"><i class="fas fa-spider"></i><span>Active Scan</span><small>OWASP ZAP</small></button>
+                            <button class="scan-type" data-type="full"><i class="fas fa-expand"></i><span>Full Assessment</span><small>All Scanners</small></button>
+                        </div>
+                        <div class="scan-config">
+                            <div class="config-group"><label>Target</label><div class="target-input"><i class="fas fa-crosshairs"></i><input type="text" id="scan-target-input" placeholder="Enter IP, hostname, URL, or CIDR range"></div></div>
+                            <div class="config-row">
+                                <div class="config-group"><label>Intensity</label><select id="scan-intensity"><option value="stealth">Stealth (Slow)</option><option value="normal" selected>Normal (Balanced)</option><option value="aggressive">Aggressive (Fast)</option></select></div>
+                                <div class="config-group"><label>Port Range</label><select id="scan-ports"><option value="top100">Top 100 Ports</option><option value="top1000" selected>Top 1000 Ports</option><option value="all">All Ports (1-65535)</option></select></div>
+                            </div>
+                            <button class="launch-scan-btn" id="launch-scan-btn"><i class="fas fa-rocket"></i><span>LAUNCH SCAN</span></button>
+                        </div>
+                    </div>
+                    <div class="scans-section"><h3><i class="fas fa-spinner fa-spin"></i> Active Scans</h3><div class="active-scans-grid" id="active-scans-grid"></div></div>
+                    <div class="scans-section"><h3><i class="fas fa-history"></i> Scan History</h3><div class="scans-table-container"><table class="data-table" id="scans-table"><thead><tr><th>Scan ID</th><th>Target</th><th>Scanner</th><th>Status</th><th>Vulnerabilities</th><th>Duration</th><th>Date</th><th>Actions</th></tr></thead><tbody id="scans-tbody"></tbody></table></div></div>
+                </div>
+
+                <!-- THREAT ANALYSIS -->
+                <div id="page-vulnerabilities" class="page">
+                    <div class="page-header-bar">
+                        <div class="page-title"><h2><i class="fas fa-bug"></i> Threat Analysis Center</h2><p>Analyze, prioritize, and remediate security vulnerabilities</p></div>
+                        <div class="filter-controls"><div class="severity-filters">
+                            <button class="severity-filter active" data-severity="all"><span class="count" id="count-all">0</span>All</button>
+                            <button class="severity-filter" data-severity="critical"><span class="count" id="count-critical">0</span>Critical</button>
+                            <button class="severity-filter" data-severity="high"><span class="count" id="count-high">0</span>High</button>
+                            <button class="severity-filter" data-severity="medium"><span class="count" id="count-medium">0</span>Medium</button>
+                            <button class="severity-filter" data-severity="low"><span class="count" id="count-low">0</span>Low</button>
+                        </div></div>
+                    </div>
+                    <div class="vuln-stats-bar">
+                        <div class="vuln-stat-item"><div class="stat-ring critical"><svg viewBox="0 0 36 36"><path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="circle" stroke-dasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/></svg><span id="ring-critical">0</span></div><label>Critical</label></div>
+                        <div class="vuln-stat-item"><div class="stat-ring high"><svg viewBox="0 0 36 36"><path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="circle" stroke-dasharray="50, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/></svg><span id="ring-high">0</span></div><label>High</label></div>
+                        <div class="vuln-stat-item"><div class="stat-ring medium"><svg viewBox="0 0 36 36"><path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="circle" stroke-dasharray="30, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/></svg><span id="ring-medium">0</span></div><label>Medium</label></div>
+                        <div class="vuln-stat-item"><div class="stat-ring low"><svg viewBox="0 0 36 36"><path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="circle" stroke-dasharray="20, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/></svg><span id="ring-low">0</span></div><label>Low</label></div>
+                    </div>
+                    <div class="vuln-grid" id="vuln-grid"></div>
+                </div>
+
+                <!-- GLOBAL THREAT MAP -->
+                <div id="page-worldmap" class="page">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-globe"></i> Global Threat Intelligence Map</h2><p>Real-time visualization of threats and scanned assets worldwide</p></div>
+                        <div class="map-controls"><button class="map-control-btn active" data-layer="threats"><i class="fas fa-skull-crossbones"></i> Threats</button><button class="map-control-btn" data-layer="assets"><i class="fas fa-server"></i> Assets</button><button class="map-control-btn" data-layer="attacks"><i class="fas fa-bolt"></i> Live Attacks</button></div>
+                    </div>
+                    <div class="map-container">
+                        <div id="threat-map" class="threat-map"></div>
+                        <div class="map-legend"><h4>Threat Severity</h4><div class="legend-item"><span class="legend-dot critical"></span> Critical</div><div class="legend-item"><span class="legend-dot high"></span> High</div><div class="legend-item"><span class="legend-dot medium"></span> Medium</div><div class="legend-item"><span class="legend-dot low"></span> Low</div></div>
+                        <div class="map-stats"><div class="map-stat"><span class="value" id="map-total-targets">0</span><span class="label">Targets Scanned</span></div><div class="map-stat"><span class="value" id="map-countries">0</span><span class="label">Countries</span></div><div class="map-stat"><span class="value" id="map-threats">0</span><span class="label">Active Threats</span></div></div>
+                    </div>
+                </div>
+
+                <!-- REMEDIATION -->
+                <div id="page-remediation" class="page">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-wrench"></i> Auto Remediation Center</h2><p>Automated vulnerability remediation with Ansible playbooks</p></div><button class="primary-btn" id="bulk-fix-btn"><i class="fas fa-magic"></i><span>Auto-Fix All Critical</span></button></div>
+                    <div class="remediation-queue" id="remediation-queue"></div>
+                </div>
+
+                <!-- REPORTS -->
+                <div id="page-reports" class="page">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-file-shield"></i> Intelligence Reports</h2><p>Generate comprehensive security assessment reports</p></div></div>
+                    <div class="reports-grid">
+                        <div class="report-generator"><h3><i class="fas fa-wand-magic-sparkles"></i> Generate New Report</h3>
+                            <form id="report-form">
+                                <div class="form-group"><label>Select Scan</label><select id="report-scan-select"><option value="">Choose a scan...</option></select></div>
+                                <div class="form-group"><label>Report Format</label><div class="format-options">
+                                    <label class="format-option"><input type="radio" name="format" value="pdf" checked><div class="format-card"><i class="fas fa-file-pdf"></i><span>PDF</span></div></label>
+                                    <label class="format-option"><input type="radio" name="format" value="html"><div class="format-card"><i class="fas fa-file-code"></i><span>HTML</span></div></label>
+                                    <label class="format-option"><input type="radio" name="format" value="json"><div class="format-card"><i class="fas fa-file-lines"></i><span>JSON</span></div></label>
+                                </div></div>
+                                <div class="form-group"><label>Include Sections</label><div class="checkbox-group"><label><input type="checkbox" checked> Executive Summary</label><label><input type="checkbox" checked> Vulnerability Details</label><label><input type="checkbox" checked> OWASP Mapping</label><label><input type="checkbox" checked> MITRE ATT&CK</label><label><input type="checkbox" checked> Remediation Steps</label><label><input type="checkbox"> Raw Scan Data</label></div></div>
+                                <button type="submit" class="generate-btn"><i class="fas fa-sparkles"></i> Generate Report</button>
+                            </form>
+                        </div>
+                        <div class="report-preview"><h3><i class="fas fa-eye"></i> Report Preview</h3><div id="report-preview-content" class="preview-content"><div class="preview-placeholder"><i class="fas fa-file-invoice"></i><p>Select a scan and generate a report to preview</p></div></div></div>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS -->
+                <div id="page-analytics" class="page">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-chart-line"></i> Security Analytics</h2><p>Deep dive into your security metrics and trends</p></div><div class="date-range-picker"><button class="range-btn" data-range="7d">7D</button><button class="range-btn active" data-range="30d">30D</button><button class="range-btn" data-range="90d">90D</button><button class="range-btn" data-range="1y">1Y</button></div></div>
+                    <div class="analytics-grid">
+                        <div class="analytics-card full-width"><h3><i class="fas fa-chart-area"></i> Vulnerability Timeline</h3><canvas id="analytics-timeline-chart"></canvas></div>
+                        <div class="analytics-card"><h3><i class="fas fa-chart-bar"></i> Top Vulnerability Types</h3><canvas id="analytics-bar-chart"></canvas></div>
+                        <div class="analytics-card"><h3><i class="fas fa-bullseye"></i> OWASP Top 10 Distribution</h3><canvas id="analytics-radar-chart"></canvas></div>
+                        <div class="analytics-card"><h3><i class="fas fa-gauge-high"></i> Fix Rate Over Time</h3><canvas id="analytics-fixrate-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- ADMIN PANEL -->
+                <div id="page-admin" class="page admin-only">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-user-shield"></i> Admin Control Panel</h2><p>System administration and monitoring</p></div></div>
+                    <div class="admin-grid">
+                        <div class="admin-card system-status"><h3><i class="fas fa-server"></i> System Status</h3><div class="status-grid"><div class="status-item online"><i class="fas fa-database"></i><span>Database</span><span class="status-badge">Online</span></div><div class="status-item online"><i class="fas fa-shield"></i><span>API Server</span><span class="status-badge">Online</span></div><div class="status-item online"><i class="fas fa-radar"></i><span>Scan Engine</span><span class="status-badge">Online</span></div><div class="status-item warning"><i class="fas fa-bell"></i><span>Alerts</span><span class="status-badge">3 Pending</span></div></div></div>
+                        <div class="admin-card admin-stats"><h3><i class="fas fa-chart-simple"></i> Platform Statistics</h3><div class="admin-stats-grid"><div class="admin-stat"><span class="value" id="admin-total-users">0</span><span class="label">Total Users</span></div><div class="admin-stat"><span class="value" id="admin-active-users">0</span><span class="label">Active Today</span></div><div class="admin-stat"><span class="value" id="admin-total-scans">0</span><span class="label">Total Scans</span></div><div class="admin-stat"><span class="value" id="admin-storage">2.4GB</span><span class="label">Storage Used</span></div></div></div>
+                        <div class="admin-card full-width"><h3><i class="fas fa-clock-rotate-left"></i> Recent Admin Actions</h3><div class="admin-actions-list" id="admin-actions-list"></div></div>
+                    </div>
+                </div>
+
+                <!-- USER MANAGEMENT -->
+                <div id="page-users" class="page admin-only">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-users-gear"></i> User Management</h2><p>Manage user accounts and permissions</p></div><button class="primary-btn" id="add-user-btn"><i class="fas fa-user-plus"></i><span>Add User</span></button></div>
+                    <div class="users-table-container"><table class="data-table" id="users-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Last Active</th><th>Scans</th><th>Actions</th></tr></thead><tbody id="users-tbody"></tbody></table></div>
+                </div>
+
+                <!-- ACTIVITY MONITOR -->
+                <div id="page-activity" class="page admin-only">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-timeline"></i> Activity Monitor</h2><p>Track all user activities and system events</p></div><div class="activity-filters"><select id="activity-user-filter"><option value="all">All Users</option></select><select id="activity-type-filter"><option value="all">All Activities</option><option value="scan">Scans</option><option value="fix">Fixes</option><option value="login">Logins</option><option value="report">Reports</option></select></div></div>
+                    <div class="activity-timeline" id="activity-timeline"></div>
+                </div>
+
+                <!-- SYSTEM CONFIG -->
+                <div id="page-settings" class="page admin-only">
+                    <div class="page-header-bar"><div class="page-title"><h2><i class="fas fa-sliders"></i> System Configuration</h2><p>Configure system settings and integrations</p></div></div>
+                    <div class="settings-grid">
+                        <div class="settings-section"><h3><i class="fas fa-cog"></i> General Settings</h3><div class="setting-item"><label>API Base URL</label><input type="text" id="setting-api-url" value="http://localhost:8000"></div><div class="setting-item"><label>Demo Mode</label><label class="toggle"><input type="checkbox" id="setting-demo-mode" checked><span class="toggle-slider"></span></label></div><div class="setting-item"><label>Auto-refresh Interval (seconds)</label><input type="number" id="setting-refresh" value="30" min="5" max="300"></div></div>
+                        <div class="settings-section"><h3><i class="fas fa-bell"></i> Notification Settings</h3><div class="setting-item"><label>Critical Alerts</label><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div><div class="setting-item"><label>Email Notifications</label><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div><div class="setting-item"><label>Slack Integration</label><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div></div>
+                        <div class="settings-section"><h3><i class="fas fa-plug"></i> Scanner Integrations</h3><div class="integration-item"><div class="integration-info"><i class="fas fa-network-wired"></i><span>Nmap</span></div><span class="integration-status connected">Connected</span></div><div class="integration-item"><div class="integration-info"><i class="fas fa-atom"></i><span>Nuclei</span></div><span class="integration-status connected">Connected</span></div><div class="integration-item"><div class="integration-info"><i class="fas fa-spider"></i><span>OWASP ZAP</span></div><span class="integration-status warning">Configure</span></div><div class="integration-item"><div class="integration-info"><i class="fas fa-bomb"></i><span>Metasploit</span></div><span class="integration-status disconnected">Not Configured</span></div></div>
+                        <div class="settings-actions"><button class="save-btn" id="save-settings-btn"><i class="fas fa-save"></i> Save Changes</button><button class="reset-btn" id="reset-settings-btn"><i class="fas fa-rotate-left"></i> Reset Defaults</button></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <div id="quick-scan-modal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-crosshairs"></i> Quick Scan</h3><button class="modal-close">&times;</button></div><div class="modal-body"><div class="form-group"><label>Target</label><input type="text" id="quick-scan-target" placeholder="Enter IP or URL"></div><div class="form-group"><label>Scanner</label><select id="quick-scan-scanner"><option value="auto">Auto Detect</option><option value="nmap">Nmap</option><option value="nuclei">Nuclei</option><option value="zap">OWASP ZAP</option></select></div></div><div class="modal-footer"><button class="cancel-btn modal-close">Cancel</button><button class="primary-btn" id="quick-scan-launch"><i class="fas fa-rocket"></i> Launch</button></div></div></div>
+    <div id="vuln-detail-modal" class="modal"><div class="modal-content large"><div class="modal-header"><h3><i class="fas fa-bug"></i> Vulnerability Details</h3><button class="modal-close">&times;</button></div><div class="modal-body" id="vuln-detail-content"></div><div class="modal-footer"><button class="cancel-btn modal-close">Close</button><button class="warning-btn" id="vuln-dry-run"><i class="fas fa-eye"></i> Dry Run</button><button class="danger-btn" id="vuln-apply-fix"><i class="fas fa-wrench"></i> Apply Fix</button></div></div></div>
+    <div id="notification-panel" class="notification-panel"><div class="notif-header"><h3><i class="fas fa-bell"></i> Notifications</h3><button class="mark-read-btn">Mark all read</button></div><div class="notif-list" id="notif-list"></div></div>
+    <div id="toast-container" class="toast-container"></div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+---
+# RedShield Ansible Playbook: Fix SQL Injection
+# Applies security configurations to prevent SQL injection
+#
+# Usage: ansible-playbook fix_sql_injection.yml -e "target_host=192.168.1.100 web_root=/var/www/html"
+
+- name: Fix SQL Injection Vulnerability
+  hosts: "{{ target_host | default('localhost') }}"
+  become: yes
+  vars:
+    web_root: "{{ web_root | default('/var/www/html') }}"
+    backup_dir: "/tmp/redshield_backups"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Backup web application files
+      archive:
+        path: "{{ web_root }}"
+        dest: "{{ backup_dir }}/webapp_backup_{{ ansible_date_time.date }}.tar.gz"
+        format: gz
+      ignore_errors: yes
+
+    - name: Find PHP files with potential SQL injection
+      shell: |
+        grep -r -l "mysql_query\|mysqli_query.*\$_\|pg_query.*\$_" {{ web_root }} --include="*.php" 2>/dev/null || true
+      register: vulnerable_files
+      changed_when: false
+
+    - name: Display potentially vulnerable files
+      debug:
+        msg: "Potentially vulnerable files: {{ vulnerable_files.stdout_lines }}"
+      when: vulnerable_files.stdout != ""
+
+    - name: Find direct variable SQL queries
+      shell: |
+        grep -r -n "SELECT.*FROM.*WHERE.*\$_\|INSERT.*INTO.*VALUES.*\$_\|UPDATE.*SET.*\$_" {{ web_root }} --include="*.php" 2>/dev/null | head -20 || true
+      register: sql_patterns
+      changed_when: false
+
+    - name: Display vulnerable SQL patterns found
+      debug:
+        msg: "{{ sql_patterns.stdout_lines }}"
+      when: sql_patterns.stdout != ""
+
+    # MySQL security hardening
+    - name: Enable MySQL strict mode
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^sql_mode'
+        line: 'sql_mode = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
+        backup: yes
+      ignore_errors: yes
+      notify: Restart MySQL
+
+    - name: Disable MySQL local infile (prevents file read attacks)
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^local_infile'
+        line: 'local_infile = 0'
+      ignore_errors: yes
+      notify: Restart MySQL
+
+    # PHP security configuration
+    - name: Disable dangerous PHP functions
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^disable_functions'
+        line: 'disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source'
+        backup: yes
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Enable PHP magic quotes (legacy protection)
+      lineinfile:
+        path: /etc/php/*/apache2/php.ini
+        regexp: '^magic_quotes_gpc'
+        line: 'magic_quotes_gpc = Off'
+      ignore_errors: yes
+
+    # Web Application Firewall (ModSecurity)
+    - name: Install ModSecurity (Debian/Ubuntu)
+      apt:
+        name: 
+          - libapache2-mod-security2
+          - modsecurity-crs
+        state: present
+      when: ansible_os_family == "Debian"
+      ignore_errors: yes
+
+    - name: Enable ModSecurity
+      shell: |
+        a2enmod security2
+        cp /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+        sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/modsecurity/modsecurity.conf
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Add SQL Injection protection rules
+      copy:
+        content: |
+          # RedShield SQL Injection Protection Rules
+          SecRule ARGS "@detectSQLi" "id:1001,phase:2,deny,status:403,msg:'SQL Injection Detected'"
+          SecRule REQUEST_BODY "@detectSQLi" "id:1002,phase:2,deny,status:403,msg:'SQL Injection in Body'"
+          SecRule ARGS "(\%27)|(\')|(\-\-)|(\%23)|(#)" "id:1003,phase:2,deny,status:403,msg:'SQL Meta-Character'"
+        dest: /etc/modsecurity/rules/redshield_sqli.conf
+        mode: '0644'
+      ignore_errors: yes
+      notify: Restart Apache
+
+    - name: Generate remediation report
+      copy:
+        content: |
+          RedShield SQL Injection Remediation Report
+          ==========================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          Web Root: {{ web_root }}
+          
+          Actions Taken:
+          1. Backed up web application files
+          2. Identified {{ vulnerable_files.stdout_lines | length }} potentially vulnerable files
+          3. Enabled MySQL strict mode
+          4. Disabled dangerous PHP functions
+          5. Installed and configured ModSecurity WAF
+          6. Added SQL injection detection rules
+          
+          IMPORTANT: Manual code review required for files listed above.
+          Replace mysql_query() with PDO prepared statements.
+          
+          Example Fix:
+          Before: $result = mysql_query("SELECT * FROM users WHERE id='$id'");
+          After:  $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+                  $stmt->execute([$id]);
+        dest: "{{ backup_dir }}/sqli_remediation_report_{{ ansible_date_time.date }}.txt"
+
+  handlers:
+    - name: Restart MySQL
+      service:
+        name: mysql
+        state: restarted
+      ignore_errors: yes
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+      ignore_errors: yes

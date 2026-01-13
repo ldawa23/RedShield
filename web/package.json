@@ -1,0 +1,20 @@
+{
+  "name": "redshield-web",
+  "version": "1.0.0",
+  "description": "RedShield Security Operations Dashboard - Full Stack Web Application",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/dist/index.js",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["security", "vulnerability", "scanner", "dashboard", "redshield"],
+  "author": "RedShield Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

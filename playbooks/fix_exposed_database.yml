@@ -1,0 +1,101 @@
+---
+# RedShield Ansible Playbook: Fix Exposed Database Port
+# Restricts database access to localhost only
+# 
+# Usage: ansible-playbook fix_exposed_database.yml -e "target_host=192.168.1.100 db_port=3306"
+
+- name: Secure Exposed Database Port
+  hosts: "{{ target_host | default('localhost') }}"
+  become: yes
+  vars:
+    db_port: "{{ db_port | default(3306) }}"
+    backup_dir: "/tmp/redshield_backups"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Backup current iptables rules
+      shell: iptables-save > {{ backup_dir }}/iptables_backup_{{ ansible_date_time.date }}.rules
+      changed_when: false
+
+    - name: Check if port is currently open
+      shell: "netstat -tlnp | grep :{{ db_port }} || true"
+      register: port_status
+      changed_when: false
+
+    - name: Display current port status
+      debug:
+        msg: "Port {{ db_port }} status: {{ port_status.stdout | default('Not listening') }}"
+
+    - name: Allow localhost connections to database port
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination_port: "{{ db_port }}"
+        source: 127.0.0.1
+        jump: ACCEPT
+        comment: "RedShield - Allow localhost to DB"
+      notify: Save iptables rules
+
+    - name: Block external connections to database port
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination_port: "{{ db_port }}"
+        jump: DROP
+        comment: "RedShield - Block external DB access"
+      notify: Save iptables rules
+
+    - name: Configure MySQL to bind to localhost only (if MySQL)
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 127.0.0.1'
+        backup: yes
+      when: db_port == '3306'
+      ignore_errors: yes
+      notify: Restart MySQL
+
+    - name: Configure PostgreSQL to bind to localhost only (if PostgreSQL)
+      lineinfile:
+        path: /etc/postgresql/*/main/postgresql.conf
+        regexp: "^listen_addresses"
+        line: "listen_addresses = 'localhost'"
+        backup: yes
+      when: db_port == '5432'
+      ignore_errors: yes
+      notify: Restart PostgreSQL
+
+    - name: Verify port is no longer accessible externally
+      wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: "{{ db_port }}"
+        state: stopped
+        timeout: 5
+      ignore_errors: yes
+      register: verify_result
+
+    - name: Report verification status
+      debug:
+        msg: "{{ 'SUCCESS: Port is now blocked externally' if verify_result.failed else 'WARNING: Port may still be accessible' }}"
+
+  handlers:
+    - name: Save iptables rules
+      shell: iptables-save > /etc/iptables/rules.v4
+      ignore_errors: yes
+
+    - name: Restart MySQL
+      service:
+        name: mysql
+        state: restarted
+      ignore_errors: yes
+
+    - name: Restart PostgreSQL
+      service:
+        name: postgresql
+        state: restarted
+      ignore_errors: yes
