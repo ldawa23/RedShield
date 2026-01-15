@@ -11,14 +11,15 @@ import {
   ChevronRight,
   AlertTriangle,
   Scan,
-  Swords,
   Wrench,
   History,
   Lock,
   Crown,
   Users,
   Target,
-  FileCode
+  FileCode,
+  Database,
+  Radar
 } from 'lucide-react';
 
 interface MenuItem {
@@ -33,12 +34,14 @@ const menuItems: MenuItem[] = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/new-scan', icon: Scan, label: 'New Scan', highlight: true, adminOnly: true },
   { path: '/scans', icon: History, label: 'Scan History' },
+  { path: '/detect', icon: Radar, label: 'Detection Engine', adminOnly: true },
   { path: '/vulnerabilities', icon: AlertTriangle, label: 'Vulnerabilities' },
+  { path: '/signatures', icon: FileCode, label: 'Signatures' },
   { path: '/attack-flow', icon: Target, label: 'Attack Flow' },
-  { path: '/exploits', icon: Swords, label: 'Exploits', adminOnly: true },
   { path: '/fix', icon: Wrench, label: 'Fix', adminOnly: true },
   { path: '/reports', icon: FileText, label: 'Reports' },
-  { path: '/report-generator', icon: FileCode, label: 'Report Generator' },
+  { path: '/report-generator', icon: FileText, label: 'Report Generator' },
+  { path: '/database', icon: Database, label: 'Database', adminOnly: true },
   { path: '/activity', icon: Activity, label: 'Activity Log' },
   { path: '/users', icon: Users, label: 'User Management', adminOnly: true },
   { path: '/settings', icon: Settings, label: 'Settings' },
@@ -127,7 +130,7 @@ export default function Sidebar() {
           <div className="flex-1">
             <p className="text-white font-medium text-sm">{auth?.user?.username || 'User'}</p>
             <p className={`text-xs capitalize ${isAdmin ? 'text-purple-400' : 'text-cyan-400'}`}>
-              {isAdmin ? '👑 Administrator' : '👤 Standard User'}
+              {isAdmin ? 'Administrator' : 'Standard User'}
             </p>
           </div>
           <button 

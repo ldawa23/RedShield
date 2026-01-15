@@ -3,10 +3,13 @@ RedShield CLI - Command Line Interface
 Red Team Remediation Toolkit
 
 Usage:
-    redshield scan <target> [options]
-    redshield fix <scan_id> [options]
-    redshield report <scan_id> [options]
-    redshield status [scan_id] [options]
+    redshield scan <target> [options]      # Scan target for open ports
+    redshield detect <target> [options]    # Run detection engine
+    redshield fix <scan_id> [options]      # Apply remediation
+    redshield report <scan_id> [options]   # Generate reports
+    redshield status [scan_id] [options]   # Check status
+    redshield signatures <command>         # Manage signatures
+    redshield db <command>                 # Database management
 """
 
 import click
@@ -17,6 +20,9 @@ from cli.commands.scan import scan
 from cli.commands.fix import fix
 from cli.commands.report import report
 from cli.commands.status import status
+from cli.commands.detect import detect
+from cli.commands.signatures import signatures
+from cli.commands.database import db
 
 
 BANNER = """
@@ -30,32 +36,41 @@ BANNER = """
 ║   ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ║
 ║                                                           ║
 ║        Red Team Remediation & Automation Toolkit          ║
-║                                                           ║
+║                v2.0.0 - Now with Detection Engine         ║
 ╚═══════════════════════════════════════════════════════════╝
 """
 
 
 @click.group()
-@click.version_option(version='1.0.0', prog_name="RedShield")
+@click.version_option(version='2.0.0', prog_name="RedShield")
 @click.option('--quiet', '-q', is_flag=True, help='Suppress banner')
 @click.pass_context
 def cli(ctx, quiet):
     """
     RedShield - Red Team Remediation & Automation Toolkit
     
-    Scan networks, discover vulnerabilities, apply fixes automatically,
-    and generate professional security reports.
+    A comprehensive security scanner with custom vulnerability signatures,
+    built-in detection engine, and automated remediation.
     
     \b
     Workflow:
-      1. SCAN   - Discover open ports and services
-      2. DETECT - Identify vulnerabilities  
-      3. FIX    - Apply remediation (Ansible)
-      4. REPORT - Generate PDF/HTML reports
+      1. SCAN      - Discover open ports and services (Nmap)
+      2. DETECT    - Identify vulnerabilities (Custom Signatures)
+      3. FIX       - Apply remediation (Ansible Playbooks)
+      4. REPORT    - Generate PDF/HTML reports
     
     \b
-    Examples:
+    Key Features:
+      • Custom vulnerability signatures (no Nuclei required)
+      • Built-in detection engine (no Burp Suite required)
+      • OWASP Top 10 & MITRE ATT&CK mappings
+      • Automated remediation with Ansible
+      • SQLAlchemy database (SQLite/PostgreSQL)
+    
+    \b
+    Quick Start:
       redshield scan 192.168.1.100 --scan-type full
+      redshield detect scan-abc123
       redshield fix scan-abc123 --auto
       redshield report scan-abc123 --format pdf
     """
@@ -72,14 +87,14 @@ def version():
     click.echo(BANNER)
     click.echo()
     click.echo(formatInfoMessage("System Information:"))
-    click.echo(f"  RedShield Version:  1.0.0")
+    click.echo(f"  RedShield Version:  2.0.0")
     click.echo(f"  Python Version:     {sys.version.split()[0]}")
     click.echo(f"  Platform:           {platform.system()} {platform.release()}")
     click.echo(f"  Architecture:       {platform.machine()}")
     click.echo()
     
     # Check for dependencies
-    click.echo(formatInfoMessage("Dependencies:"))
+    click.echo(formatInfoMessage("Core Dependencies:"))
     
     # Check nmap
     try:
@@ -88,7 +103,7 @@ def version():
         nmap_version = result.stdout.split('\n')[0] if result.returncode == 0 else "Not found"
         click.echo(f"  Nmap:               {nmap_version}")
     except FileNotFoundError:
-        click.echo(f"  Nmap:               Not installed")
+        click.echo(f"  Nmap:               Not installed (demo mode available)")
     
     # Check ansible
     try:
@@ -97,7 +112,21 @@ def version():
         ansible_version = result.stdout.split('\n')[0] if result.returncode == 0 else "Not found"
         click.echo(f"  Ansible:            {ansible_version}")
     except FileNotFoundError:
-        click.echo(f"  Ansible:            Not installed")
+        click.echo(f"  Ansible:            Not installed (required for fixes)")
+    
+    click.echo()
+    
+    # Show signature stats
+    click.echo(formatInfoMessage("Detection Engine:"))
+    try:
+        from core.signatures.registry import SignatureRegistry
+        registry = SignatureRegistry()
+        stats = registry.get_statistics()
+        click.echo(f"  Loaded Signatures:  {stats['total']}")
+        click.echo(f"  OWASP Categories:   {len(stats['categories'])}")
+        click.echo(f"  Detection Types:    Port, Banner, HTTP, Credential, Version")
+    except Exception:
+        click.echo(f"  Signatures:         Error loading")
     
     click.echo()
     click.echo(formatSuccessMessage("Status: Ready"))
@@ -173,6 +202,9 @@ cli.add_command(scan)
 cli.add_command(fix)
 cli.add_command(report)
 cli.add_command(status)
+cli.add_command(detect)
+cli.add_command(signatures)
+cli.add_command(db)
 
 
 def main():

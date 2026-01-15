@@ -325,7 +325,7 @@ export default function Settings() {
               <p className="text-gray-500 text-sm">
                 {pythonApiRunning 
                   ? 'Real scanning tools are available for use' 
-                  : '✅ RedShield works perfectly in Demo Mode! The Python API is only needed for real network scans.'}
+                  : 'RedShield works perfectly in Demo Mode! The Python API is only needed for real network scans.'}
               </p>
             </div>
             <div className={`px-3 py-1 rounded-lg text-xs font-medium ${pythonApiRunning ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>

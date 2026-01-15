@@ -38,7 +38,7 @@ interface ActivityLog {
 const SEVERITY_EXPLAIN: Record<string, { meaning: string; action: string; color: string }> = {
   critical: {
     meaning: "Extremely dangerous - hackers could take complete control",
-    action: "Must be fixed immediately - don't wait",
+    action: "Must be fixed immediately",
     color: "red"
   },
   high: {
@@ -53,7 +53,7 @@ const SEVERITY_EXPLAIN: Record<string, { meaning: string; action: string; color:
   },
   low: {
     meaning: "Minor issue - limited risk",
-    action: "Fix when convenient, but don't ignore",
+    action: "Fix when convenient",
     color: "green"
   }
 };
@@ -110,18 +110,15 @@ export default function ReportGenerator() {
 
     if (reportType === 'executive') {
       content = `
-═══════════════════════════════════════════════════════════════════════════════
-                       SECURITY ASSESSMENT REPORT
-                     Executive Summary (Non-Technical)
-═══════════════════════════════════════════════════════════════════════════════
+SECURITY ASSESSMENT REPORT
+Executive Summary (Non-Technical)
 
 Generated: ${now}
 Report Type: Executive Summary for Management
 Prepared by: RedShield Security Scanner
 
-═══════════════════════════════════════════════════════════════════════════════
-                         WHAT THIS REPORT TELLS YOU
-═══════════════════════════════════════════════════════════════════════════════
+
+WHAT THIS REPORT TELLS YOU
 
 This report shows you the security health of your systems in simple terms:
 - What security problems were found
@@ -129,59 +126,55 @@ This report shows you the security health of your systems in simple terms:
 - Which problems have been fixed
 - What still needs attention
 
-═══════════════════════════════════════════════════════════════════════════════
-                         OVERALL SECURITY STATUS
-═══════════════════════════════════════════════════════════════════════════════
+
+OVERALL SECURITY STATUS
 
 YOUR SECURITY SCORE: ${normalizedScore}/100
 
 What this means:
-${normalizedScore >= 80 ? '✅ GOOD - Your systems are reasonably secure. Keep up the good work!' :
-  normalizedScore >= 60 ? '⚠️ FAIR - Some issues need attention. Not urgent, but important.' :
-  normalizedScore >= 40 ? '⚠️ AT RISK - Several problems found. Should be addressed soon.' :
-  '🚨 CRITICAL - Serious security issues. Immediate action required!'}
+${normalizedScore >= 80 ? 'GOOD - Your systems are reasonably secure. Keep up the good work!' :
+  normalizedScore >= 60 ? 'FAIR - Some issues need attention. Not urgent, but important.' :
+  normalizedScore >= 40 ? 'AT RISK - Several problems found. Should be addressed soon.' :
+  'CRITICAL - Serious security issues. Immediate action required!'}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         THE NUMBERS AT A GLANCE
-═══════════════════════════════════════════════════════════════════════════════
+
+THE NUMBERS AT A GLANCE
 
 Total Issues Found:        ${stats.total}
-Issues Fixed:             ${stats.fixed} ✅
-Issues Remaining:         ${stats.open} ${stats.open > 0 ? '⚠️' : ''}
+Issues Fixed:              ${stats.fixed}
+Issues Remaining:          ${stats.open}
 
 BREAKDOWN BY DANGER LEVEL:
-─────────────────────────────────────────────────────────────────────────────
-🚨 Critical (Most Dangerous):    ${stats.critical} found, ${stats.fixedCritical} fixed
+
+Critical (Most Dangerous):    ${stats.critical} found, ${stats.fixedCritical} fixed
    ${SEVERITY_EXPLAIN.critical.meaning}
    
-⚠️ High (Very Dangerous):        ${stats.high} found, ${stats.fixedHigh} fixed
+High (Very Dangerous):        ${stats.high} found, ${stats.fixedHigh} fixed
    ${SEVERITY_EXPLAIN.high.meaning}
    
-⚡ Medium (Moderate Risk):       ${stats.medium} found
+Medium (Moderate Risk):       ${stats.medium} found
    ${SEVERITY_EXPLAIN.medium.meaning}
    
-ℹ️ Low (Minor Risk):             ${stats.low} found
+Low (Minor Risk):             ${stats.low} found
    ${SEVERITY_EXPLAIN.low.meaning}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         WHAT WAS FOUND (SIMPLE EXPLANATION)
-═══════════════════════════════════════════════════════════════════════════════
+
+WHAT WAS FOUND
 
 ${vulnerabilities.length === 0 ? 'No security issues were found. Your systems appear secure.' :
 vulnerabilities.map(v => `
-📌 ${v.vuln_type}
+* ${v.vuln_type}
    Location: ${v.target}:${v.port} (${v.service || 'service'})
    Danger Level: ${v.severity?.toUpperCase()}
-   Status: ${v.status === 'fixed' ? '✅ FIXED' : '⚠️ NEEDS ATTENTION'}
+   Status: ${v.status === 'fixed' ? 'FIXED' : 'NEEDS ATTENTION'}
    ${v.status === 'fixed' && v.fix_description ? `What we did: ${v.fix_description}` : ''}
 `).join('')}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         WHAT SHOULD YOU DO NOW?
-═══════════════════════════════════════════════════════════════════════════════
+
+WHAT SHOULD YOU DO NOW?
 
 ${stats.open === 0 ? `
-✅ GREAT NEWS! All identified issues have been fixed.
+GREAT NEWS! All identified issues have been fixed.
 
 Recommendations:
 1. Schedule regular security scans (monthly recommended)
@@ -189,33 +182,29 @@ Recommendations:
 3. Train staff on security best practices
 4. Consider a professional penetration test annually
 ` : `
-⚠️ There are ${stats.open} issues that still need attention.
+There are ${stats.open} issues that still need attention.
 
 Priority Actions:
-${stats.critical - stats.fixedCritical > 0 ? `1. 🚨 FIX CRITICAL ISSUES IMMEDIATELY - You have ${stats.critical - stats.fixedCritical} critical vulnerabilities` : ''}
-${stats.high - stats.fixedHigh > 0 ? `2. ⚠️ Address high-severity issues within 48 hours - You have ${stats.high - stats.fixedHigh} high vulnerabilities` : ''}
+${stats.critical - stats.fixedCritical > 0 ? `1. FIX CRITICAL ISSUES IMMEDIATELY - You have ${stats.critical - stats.fixedCritical} critical vulnerabilities` : ''}
+${stats.high - stats.fixedHigh > 0 ? `2. Address high-severity issues within 48 hours - You have ${stats.high - stats.fixedHigh} high vulnerabilities` : ''}
 3. Use the "Fix" page in RedShield to resolve these issues
 4. Generate a new report after fixes are applied
 `}
 
-═══════════════════════════════════════════════════════════════════════════════
-                              END OF REPORT
-═══════════════════════════════════════════════════════════════════════════════
+
+END OF REPORT
 `;
     } else if (reportType === 'changes') {
       content = `
-═══════════════════════════════════════════════════════════════════════════════
-                         SECURITY CHANGES REPORT
-                        What Changed and Why
-═══════════════════════════════════════════════════════════════════════════════
+SECURITY CHANGES REPORT
+What Changed and Why
 
 Generated: ${now}
 Report Type: Changes & Activity Log
 Prepared by: RedShield Security Scanner
 
-═══════════════════════════════════════════════════════════════════════════════
-                         WHAT THIS REPORT SHOWS
-═══════════════════════════════════════════════════════════════════════════════
+
+WHAT THIS REPORT SHOWS
 
 This report documents all security changes made to your systems:
 - What issues were fixed
@@ -223,46 +212,41 @@ This report documents all security changes made to your systems:
 - What was done to fix them
 - Before and after status
 
-═══════════════════════════════════════════════════════════════════════════════
-                         FIXES APPLIED
-═══════════════════════════════════════════════════════════════════════════════
+
+FIXES APPLIED
 
 ${vulnerabilities.filter(v => v.status === 'fixed').length === 0 ? 
 'No fixes have been applied yet.\n' :
 vulnerabilities.filter(v => v.status === 'fixed').map(v => `
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ FIXED: ${v.vuln_type.padEnd(60)}│
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Target:     ${(v.target + ':' + v.port).padEnd(56)}│
-│ Severity:   ${v.severity?.toUpperCase().padEnd(56)}│
-│ Found:      ${new Date(v.discovered_at).toLocaleString().padEnd(56)}│
-│ Fixed:      ${(v.fixed_at ? new Date(v.fixed_at).toLocaleString() : 'Unknown').padEnd(56)}│
-│                                                                             │
-│ WHAT WAS DONE:                                                              │
-│ ${(v.fix_description || 'Applied automated security fix').padEnd(73)}│
-│                                                                             │
-│ BEFORE: System was vulnerable to ${v.vuln_type.toLowerCase().substring(0, 40).padEnd(42)}│
-│ AFTER:  Vulnerability has been patched and secured                          │
-└─────────────────────────────────────────────────────────────────────────────┘
-`).join('\n')}
+FIXED: ${v.vuln_type}
+  Target:     ${v.target}:${v.port}
+  Severity:   ${v.severity?.toUpperCase()}
+  Found:      ${new Date(v.discovered_at).toLocaleString()}
+  Fixed:      ${v.fixed_at ? new Date(v.fixed_at).toLocaleString() : 'Unknown'}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         ISSUES STILL OPEN
-═══════════════════════════════════════════════════════════════════════════════
+  WHAT WAS DONE:
+  ${v.fix_description || 'Applied automated security fix'}
+
+  BEFORE: System was vulnerable to ${v.vuln_type.toLowerCase()}
+  AFTER:  Vulnerability has been patched and secured
+
+`).join('')}
+
+
+ISSUES STILL OPEN
 
 ${vulnerabilities.filter(v => v.status !== 'fixed').length === 0 ?
-'✅ All issues have been resolved!\n' :
+'All issues have been resolved!\n' :
 vulnerabilities.filter(v => v.status !== 'fixed').map(v => `
-⚠️ OPEN: ${v.vuln_type}
+OPEN: ${v.vuln_type}
    Location: ${v.target}:${v.port}
    Severity: ${v.severity?.toUpperCase()}
    Found: ${new Date(v.discovered_at).toLocaleString()}
    Action Required: Go to Fix page to resolve this issue
 `).join('\n')}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         ACTIVITY LOG
-═══════════════════════════════════════════════════════════════════════════════
+
+ACTIVITY LOG
 
 All security-related activities in chronological order:
 
@@ -272,9 +256,8 @@ activities.slice(0, 20).map(a => `
    ${a.details}
 `).join('')}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         SUMMARY OF CHANGES
-═══════════════════════════════════════════════════════════════════════════════
+
+SUMMARY OF CHANGES
 
 Total Scans Performed:     ${scans.length}
 Total Issues Discovered:   ${stats.total}
@@ -283,29 +266,24 @@ Total Issues Remaining:    ${stats.open}
 
 Security Improvement:      ${stats.total > 0 ? Math.round((stats.fixed / stats.total) * 100) : 0}% of issues resolved
 
-═══════════════════════════════════════════════════════════════════════════════
-                              END OF REPORT
-═══════════════════════════════════════════════════════════════════════════════
+
+END OF REPORT
 `;
     } else {
       // Technical report
       content = `
-═══════════════════════════════════════════════════════════════════════════════
-                      TECHNICAL SECURITY REPORT
-                       For IT Professionals
-═══════════════════════════════════════════════════════════════════════════════
+TECHNICAL SECURITY REPORT
+For IT Professionals
 
 Generated: ${now}
 Report Type: Technical Details
 Prepared by: RedShield Security Scanner
 
-═══════════════════════════════════════════════════════════════════════════════
-                         VULNERABILITY DETAILS
-═══════════════════════════════════════════════════════════════════════════════
+
+VULNERABILITY DETAILS
 
 ${vulnerabilities.map(v => `
 VULNERABILITY: ${v.vuln_type}
-────────────────────────────────────────────────────────────────────────────
 ID:          ${v.id}
 Target:      ${v.target}
 Port:        ${v.port}
@@ -319,9 +297,8 @@ Fix Applied: ${v.fix_description || 'Pending'}
 
 `).join('')}
 
-═══════════════════════════════════════════════════════════════════════════════
-                         SCAN HISTORY
-═══════════════════════════════════════════════════════════════════════════════
+
+SCAN HISTORY
 
 ${scans.map(s => `
 Scan ID: ${s.id}
@@ -331,7 +308,6 @@ Status: ${s.status}
 Date: ${s.created_at}
 `).join('\n')}
 
-═══════════════════════════════════════════════════════════════════════════════
 `;
     }
 
@@ -506,10 +482,10 @@ Date: ${s.created_at}
                       'text-red-400'
                     }`}>{normalizedScore}/100</p>
                     <p className="mt-2 text-gray-300">
-                      {normalizedScore >= 80 ? '✅ Your systems are reasonably secure' :
-                       normalizedScore >= 60 ? '⚠️ Some issues need attention' :
-                       normalizedScore >= 40 ? '⚠️ Several problems need addressing' :
-                       '🚨 Critical issues require immediate action'}
+                      {normalizedScore >= 80 ? 'Your systems are reasonably secure' :
+                       normalizedScore >= 60 ? 'Some issues need attention' :
+                       normalizedScore >= 40 ? 'Several problems need addressing' :
+                       'Critical issues require immediate action'}
                     </p>
                   </div>
                 </div>

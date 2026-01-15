@@ -54,25 +54,21 @@ const SEVERITY_INFO = {
   critical: {
     meaning: "Extremely Dangerous",
     action: "Fix immediately - hackers could take over your entire system",
-    icon: "🚨",
     color: "red"
   },
   high: {
     meaning: "Very Serious",
     action: "Fix within 24 hours - significant security risk",
-    icon: "⚠️",
     color: "orange"
   },
   medium: {
     meaning: "Moderate Risk",
     action: "Fix this week - could be exploited with some effort",
-    icon: "⚡",
     color: "yellow"
   },
   low: {
     meaning: "Minor Issue",
     action: "Fix when you have time - low risk but worth addressing",
-    icon: "ℹ️",
     color: "green"
   }
 };
@@ -94,13 +90,31 @@ export default function Dashboard() {
     try {
       const [statsRes, scansRes, vulnsRes] = await Promise.all([
         api.get('/stats'),
-        api.get('/scans?limit=5'),
+        api.get('/scans'),
         api.get('/vulnerabilities?limit=6')
       ]);
       
-      setStats(statsRes.data);
-      setRecentScans(scansRes.data.scans || []);
-      setRecentVulns(vulnsRes.data.vulnerabilities || vulnsRes.data || []);
+      // Map API response to expected format
+      const apiStats = statsRes.data;
+      const mappedStats: DashboardStats = {
+        total_scans: apiStats.totalScans || apiStats.total_scans || 0,
+        total_vulns: apiStats.totalVulnerabilities || apiStats.total_vulns || 0,
+        fixed_vulns: apiStats.fixedVulnerabilities || apiStats.fixed_vulns || 0,
+        critical: apiStats.severityCounts?.critical || apiStats.critical || 0,
+        high: apiStats.severityCounts?.high || apiStats.high || 0,
+        medium: apiStats.severityCounts?.medium || apiStats.medium || 0,
+        low: apiStats.severityCounts?.low || apiStats.low || 0
+      };
+      
+      setStats(mappedStats);
+      
+      // Handle scans - API returns array directly or object with scans property
+      const scansData = Array.isArray(scansRes.data) ? scansRes.data : (scansRes.data.scans || []);
+      setRecentScans(scansData.slice(0, 5));
+      
+      // Handle vulnerabilities
+      const vulnsData = Array.isArray(vulnsRes.data) ? vulnsRes.data : (vulnsRes.data.vulnerabilities || []);
+      setRecentVulns(vulnsData.slice(0, 6));
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -109,19 +123,33 @@ export default function Dashboard() {
   };
 
   const getSecurityScore = () => {
-    if (!stats || stats.total_vulns === 0) return 100;
-    const severityWeight = (stats.critical * 40 + stats.high * 25 + stats.medium * 10 + stats.low * 5);
-    const maxPossibleWeight = stats.total_vulns * 40;
+    if (!stats) return 100;
+    const totalVulns = stats.total_vulns || 0;
+    const fixedVulns = stats.fixed_vulns || 0;
+    const critical = stats.critical || 0;
+    const high = stats.high || 0;
+    const medium = stats.medium || 0;
+    const low = stats.low || 0;
+    
+    if (totalVulns === 0) return 100;
+    
+    const severityWeight = (critical * 40 + high * 25 + medium * 10 + low * 5);
+    const maxPossibleWeight = totalVulns * 40;
+    
+    if (maxPossibleWeight === 0) return 100;
+    
     const rawScore = 100 - (severityWeight / maxPossibleWeight * 100);
-    const fixBonus = (stats.fixed_vulns / stats.total_vulns) * 20;
-    return Math.max(0, Math.min(100, Math.round(rawScore + fixBonus)));
+    const fixBonus = totalVulns > 0 ? (fixedVulns / totalVulns) * 20 : 0;
+    const finalScore = Math.max(0, Math.min(100, Math.round(rawScore + fixBonus)));
+    
+    return isNaN(finalScore) ? 100 : finalScore;
   };
 
   const getScoreStatus = (score: number) => {
-    if (score >= 80) return { label: "Good", sublabel: "Your systems are well protected", color: "green", emoji: "✅" };
-    if (score >= 60) return { label: "Fair", sublabel: "Some issues need attention", color: "yellow", emoji: "⚡" };
-    if (score >= 40) return { label: "At Risk", sublabel: "Several vulnerabilities found", color: "orange", emoji: "⚠️" };
-    return { label: "Critical", sublabel: "Immediate action required!", color: "red", emoji: "🚨" };
+    if (score >= 80) return { label: "Good", sublabel: "Your systems are well protected", color: "green" };
+    if (score >= 60) return { label: "Fair", sublabel: "Some issues need attention", color: "yellow" };
+    if (score >= 40) return { label: "At Risk", sublabel: "Several vulnerabilities found", color: "orange" };
+    return { label: "Critical", sublabel: "Immediate action required!", color: "red" };
   };
 
   const score = getSecurityScore();
@@ -149,7 +177,7 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-            Welcome back, {auth?.user?.username}! 👋
+            Welcome back, {auth?.user?.username}!
           </h1>
           <p className="text-gray-400 text-lg">
             Here's an overview of your security status
@@ -209,7 +237,6 @@ export default function Dashboard() {
             <div>
               <h2 className="text-gray-400 text-sm font-medium mb-1">Your Security Score</h2>
               <div className="flex items-center gap-3">
-                <span className="text-4xl">{scoreStatus.emoji}</span>
                 <div>
                   <p className={`text-2xl font-bold ${
                     scoreStatus.color === 'green' ? 'text-green-400' :
@@ -293,7 +320,6 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{info.icon}</span>
                       <div className="text-left">
                         <p className={`font-semibold capitalize ${
                           level === 'critical' ? 'text-red-400' :
@@ -410,7 +436,7 @@ export default function Dashboard() {
             {recentVulns.length === 0 ? (
               <div className="text-center py-8">
                 <Shield className="w-12 h-12 text-green-500/30 mx-auto mb-3" />
-                <p className="text-green-400 font-medium">All Clear! 🎉</p>
+                <p className="text-green-400 font-medium">All Clear!</p>
                 <p className="text-gray-600 text-sm">No security issues found</p>
               </div>
             ) : (
@@ -433,7 +459,7 @@ export default function Dashboard() {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       vuln.status === 'fixed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                     }`}>
-                      {vuln.status === 'fixed' ? '✓ Fixed' : 'Open'}
+                      {vuln.status === 'fixed' ? 'Fixed' : 'Open'}
                     </span>
                   </button>
                 ))}
@@ -452,21 +478,18 @@ export default function Dashboard() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-[#0a0f1a] rounded-xl p-4">
-              <div className="text-3xl mb-2">🎯</div>
               <h4 className="text-white font-medium mb-1">Step 1: Choose a Target</h4>
               <p className="text-gray-500 text-sm">
                 Enter the website or IP address you want to check. For testing, try: <code className="bg-gray-800 px-1 rounded">testphp.vulnweb.com</code>
               </p>
             </div>
             <div className="bg-[#0a0f1a] rounded-xl p-4">
-              <div className="text-3xl mb-2">🔍</div>
               <h4 className="text-white font-medium mb-1">Step 2: Run the Scan</h4>
               <p className="text-gray-500 text-sm">
                 Click "Start Scan" and wait. We'll check for common security problems.
               </p>
             </div>
             <div className="bg-[#0a0f1a] rounded-xl p-4">
-              <div className="text-3xl mb-2">📋</div>
               <h4 className="text-white font-medium mb-1">Step 3: Review & Fix</h4>
               <p className="text-gray-500 text-sm">
                 We'll show what we found with simple explanations and fixes.

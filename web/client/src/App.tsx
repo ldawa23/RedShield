@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, createContext } from 'react';
 import Sidebar from './components/Sidebar';
-import { Dashboard, Scans, ScanDetails, Vulnerabilities, Reports, Activity, Settings, Login, NewScan, Exploits, Fix, Users, AttackFlow, ReportGenerator } from './pages';
+import { Dashboard, Scans, ScanDetails, Vulnerabilities, Reports, Activity, Settings, Login, NewScan, Fix, Users, AttackFlow, ReportGenerator, Signatures, DatabaseManagement, Detect } from './pages';
 import { api } from './services/api';
 
 // Auth Context
@@ -127,6 +127,7 @@ function App() {
               <Route path="/scans" element={<Scans />} />
               <Route path="/scans/:scanId" element={<ScanDetails />} />
               <Route path="/vulnerabilities" element={<Vulnerabilities />} />
+              <Route path="/signatures" element={<Signatures />} />
               <Route path="/attack-flow" element={<AttackFlow />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/report-generator" element={<ReportGenerator />} />
@@ -135,8 +136,9 @@ function App() {
               
               {/* Admin-only routes */}
               <Route path="/new-scan" element={<AdminRoute><NewScan /></AdminRoute>} />
-              <Route path="/exploits" element={<AdminRoute><Exploits /></AdminRoute>} />
+              <Route path="/detect" element={<AdminRoute><Detect /></AdminRoute>} />
               <Route path="/fix" element={<AdminRoute><Fix /></AdminRoute>} />
+              <Route path="/database" element={<AdminRoute><DatabaseManagement /></AdminRoute>} />
               <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
               
               <Route path="*" element={<Navigate to="/" />} />

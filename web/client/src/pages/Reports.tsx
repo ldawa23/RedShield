@@ -151,7 +151,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
       align-items: center;
       gap: 12px;
     }
-    .header h1::before { content: "🛡️"; }
+    .header h1::before { content: ""; }
     .header p { color: #9ca3af; }
     .meta { 
       display: grid; 
@@ -365,7 +365,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
 
     ${fixedVulns.length > 0 ? `
     <div class="section">
-      <h2 class="section-title">✅ Fixed Vulnerabilities (${fixedVulns.length})</h2>
+      <h2 class="section-title">Fixed Vulnerabilities (${fixedVulns.length})</h2>
       ${fixedVulns.map(v => `
         <div class="vuln-card">
           <div class="vuln-header">
@@ -377,9 +377,9 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
           </div>
           <div class="vuln-body">
             <div class="vuln-meta">
-              <span>🌐 ${v.service}:${v.port}</span>
-              <span>📅 Found: ${new Date(v.discovered_at).toLocaleDateString()}</span>
-              ${v.cve_id ? `<span>🔗 ${v.cve_id}</span>` : ''}
+              <span>${v.service}:${v.port}</span>
+              <span>Found: ${new Date(v.discovered_at).toLocaleDateString()}</span>
+              ${v.cve_id ? `<span>${v.cve_id}</span>` : ''}
             </div>
             
             ${v.description ? `<p style="margin-bottom: 15px;">${v.description}</p>` : ''}
@@ -400,7 +400,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
             
             ${v.fix_method || v.fix_command || v.before_state || v.after_state ? `
             <div class="fix-evidence">
-              <h4>🔧 How It Was Fixed</h4>
+              <h4>How It Was Fixed</h4>
               ${v.fix_method ? `<p><strong>Method:</strong> ${v.fix_method}</p>` : ''}
               ${v.fix_command ? `
                 <p><strong>Fix Command:</strong></p>
@@ -419,7 +419,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
                 </div>
               ` : ''}
               ${v.verification_result ? `
-                <p style="margin-top: 15px; color: #22c55e;"><strong>✓ Verification:</strong> ${v.verification_result}</p>
+                <p style="margin-top: 15px; color: #22c55e;"><strong>Verification:</strong> ${v.verification_result}</p>
               ` : ''}
             </div>
             ` : ''}
@@ -436,7 +436,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
 
     ${openVulns.length > 0 ? `
     <div class="section">
-      <h2 class="section-title">⚠️ Open Vulnerabilities (${openVulns.length})</h2>
+      <h2 class="section-title">Open Vulnerabilities (${openVulns.length})</h2>
       ${openVulns.map(v => `
         <div class="vuln-card">
           <div class="vuln-header">
@@ -448,8 +448,8 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
           </div>
           <div class="vuln-body">
             <div class="vuln-meta">
-              <span>🌐 ${v.service}:${v.port}</span>
-              <span>📅 Found: ${new Date(v.discovered_at).toLocaleDateString()}</span>
+              <span>${v.service}:${v.port}</span>
+              <span>Found: ${new Date(v.discovered_at).toLocaleDateString()}</span>
             </div>
             
             ${v.description ? `<p style="margin-bottom: 15px;">${v.description}</p>` : ''}
@@ -477,7 +477,7 @@ function generateHTMLReport(scan: Scan, vulnerabilities: Vulnerability[]): strin
             
             ${v.fix_description ? `
             <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 15px; margin-top: 15px;">
-              <h4 style="color: #3b82f6; margin-bottom: 10px;">💡 Recommended Fix</h4>
+              <h4 style="color: #3b82f6; margin-bottom: 10px;">Recommended Fix</h4>
               <p>${v.fix_description}</p>
             </div>
             ` : ''}
@@ -837,7 +837,7 @@ export default function Reports() {
               ) : (
                 <div className="text-center py-4">
                   <Award className="w-10 h-10 text-green-400 mx-auto mb-2" />
-                  <p className="text-green-400 text-sm font-medium">All vulnerabilities fixed! 🎉</p>
+                  <p className="text-green-400 text-sm font-medium">All vulnerabilities fixed!</p>
                 </div>
               )}
             </div>

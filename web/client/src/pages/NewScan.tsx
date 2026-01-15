@@ -22,7 +22,7 @@ import api from '../services/api';
 // Simple explanations for non-IT users
 const SCAN_OPTIONS = {
   quick: {
-    title: '⚡ Quick Scan',
+    title: 'Quick Scan',
     time: '2-5 minutes',
     description: 'A fast check of the most common security issues',
     whatWeCheck: [
@@ -36,7 +36,7 @@ const SCAN_OPTIONS = {
     durationMs: 120000 // 2 minutes (realistic demo timing)
   },
   full: {
-    title: '🔍 Full Scan',
+    title: 'Full Scan',
     time: '10-20 minutes',
     description: 'A thorough check covering most security concerns',
     whatWeCheck: [
@@ -51,7 +51,7 @@ const SCAN_OPTIONS = {
     durationMs: 300000 // 5 minutes (for demo - realistically 10-20min)
   },
   deep: {
-    title: '🛡️ Deep Scan',
+    title: 'Deep Scan',
     time: '30-60 minutes',
     description: 'The most comprehensive security analysis possible',
     whatWeCheck: [
@@ -463,8 +463,8 @@ export default function NewScan() {
                       (scanResult.critical || 0) + (scanResult.high || 0) > 0 ? 'text-red-300' : 'text-green-300'
                     }`}>
                       {(scanResult.critical || 0) + (scanResult.high || 0) > 0 
-                        ? '⚠️ Urgent action needed!' 
-                        : '✅ Looking good!'}
+                        ? 'Urgent action needed!' 
+                        : 'Looking good!'}
                     </p>
                     <p className="text-gray-400 text-sm mt-1">
                       {(scanResult.critical || 0) + (scanResult.high || 0) > 0 

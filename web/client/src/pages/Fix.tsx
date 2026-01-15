@@ -243,7 +243,7 @@ export default function Fix() {
       setFixSteps(prev => prev.map((s, idx) => 
         idx === i ? { ...s, status: 'done', result: 'Completed successfully' } : s
       ));
-      setFixLog(prev => [...prev, `[Step ${i + 1}] ✓ Completed`]);
+      setFixLog(prev => [...prev, `[Step ${i + 1}] Completed`]);
     }
     
     // Call API to actually mark as fixed
@@ -254,9 +254,8 @@ export default function Fix() {
         fix_description: `Applied automated fix for ${selectedVuln.vuln_type}`
       });
       
-      setFixLog(prev => [...prev, '', '═══════════════════════════════════════', 
-        '✅ FIX SUCCESSFULLY APPLIED', 
-        '═══════════════════════════════════════',
+      setFixLog(prev => [...prev, '', 
+        'FIX SUCCESSFULLY APPLIED', 
         '',
         `Vulnerability: ${selectedVuln.vuln_type}`,
         `Target: ${selectedVuln.target}:${selectedVuln.port}`,
@@ -272,7 +271,7 @@ export default function Fix() {
     } catch (err) {
       console.error('Fix failed:', err);
       setFixError('Fix failed. Please check system logs.');
-      setFixLog(prev => [...prev, '', '❌ ERROR: Fix failed', 'Please try again or contact support.']);
+      setFixLog(prev => [...prev, '', 'ERROR: Fix failed', 'Please try again or contact support.']);
     }
     
     setIsFixing(false);
@@ -321,7 +320,7 @@ export default function Fix() {
           {vulnerabilities.length === 0 ? (
             <div className="p-8 text-center">
               <Shield className="w-16 h-16 text-green-400/30 mx-auto mb-4" />
-              <h3 className="text-green-400 font-semibold mb-2">All Fixed! 🎉</h3>
+              <h3 className="text-green-400 font-semibold mb-2">All Fixed!</h3>
               <p className="text-gray-500 text-sm">No open vulnerabilities remain.</p>
               <button
                 onClick={() => navigate('/vulnerabilities')}
@@ -386,11 +385,11 @@ export default function Fix() {
                 {/* Before & After */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                    <h4 className="text-red-400 font-semibold mb-2">❌ Before Fix</h4>
+                    <h4 className="text-red-400 font-semibold mb-2">Before Fix</h4>
                     <p className="text-gray-300 text-sm">{getFixExplanation(selectedVuln.vuln_type).beforeAfter.before}</p>
                   </div>
                   <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                    <h4 className="text-green-400 font-semibold mb-2">✅ After Fix</h4>
+                    <h4 className="text-green-400 font-semibold mb-2">After Fix</h4>
                     <p className="text-gray-300 text-sm">{getFixExplanation(selectedVuln.vuln_type).beforeAfter.after}</p>
                   </div>
                 </div>
@@ -462,9 +461,8 @@ export default function Fix() {
                   <div className="bg-black rounded-lg p-4 font-mono text-sm max-h-[200px] overflow-y-auto">
                     {fixLog.map((line, idx) => (
                       <div key={idx} className={`${
-                        line.includes('✓') || line.includes('✅') ? 'text-green-400' :
-                        line.includes('❌') || line.includes('ERROR') ? 'text-red-400' :
-                        line.includes('═') ? 'text-blue-400' :
+                        line.includes('Completed') || line.includes('SUCCESSFULLY') ? 'text-green-400' :
+                        line.includes('ERROR') ? 'text-red-400' :
                         'text-gray-400'
                       }`}>
                         {line || '\u00A0'}

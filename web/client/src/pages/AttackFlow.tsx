@@ -223,9 +223,9 @@ export default function AttackFlow() {
       {/* Tab Navigation */}
       <div className="flex gap-2 mb-6">
         {[
-          { id: 'killchain', label: '🔗 Kill Chain', icon: Target },
-          { id: 'mitre', label: '🎯 MITRE ATT&CK', icon: Crosshair },
-          { id: 'owasp', label: '🔟 OWASP Top 10', icon: Globe },
+          { id: 'killchain', label: 'Kill Chain', icon: Target },
+          { id: 'mitre', label: 'MITRE ATT&CK', icon: Crosshair },
+          { id: 'owasp', label: 'OWASP Top 10', icon: Globe },
         ].map((tab) => (
           <button
             key={tab.id}

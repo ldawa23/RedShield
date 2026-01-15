@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedShield Security Report - scan-20260115-2E40AC</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { opacity: 0.9; }
+        .content { padding: 30px; }
+        .section { margin-bottom: 30px; }
+        .section h2 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 20px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .info-item { background: #f8f9fa; padding: 15px; border-radius: 6px; }
+        .info-item label { color: #666; font-size: 12px; text-transform: uppercase; }
+        .info-item value { color: #333; font-size: 16px; font-weight: 600; display: block; margin-top: 5px; }
+        .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .card { padding: 20px; border-radius: 8px; text-align: center; color: white; }
+        .card.critical { background: #dc3545; }
+        .card.high { background: #fd7e14; }
+        .card.medium { background: #ffc107; color: #333; }
+        .card.low { background: #28a745; }
+        .card .number { font-size: 36px; font-weight: bold; }
+        .card .label { font-size: 12px; text-transform: uppercase; opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #dee2e6; }
+        .status-fixed { color: #28a745; }
+        .status-open { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ RedShield Security Report</h1>
+            <p>Vulnerability Assessment Report</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Scan Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Scan ID</label>
+                        <value>scan-20260115-2E40AC</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Target</label>
+                        <value>192.168.1.100</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Scan Type</label>
+                        <value>QUICK</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Port Range</label>
+                        <value>22,80,443,3306,5432,27017,6379</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Started</label>
+                        <value>2026-01-15T17:58:49.872801</value>
+                    </div>
+                    <div class="info-item">
+                        <label>Completed</label>
+                        <value>2026-01-15T17:58:49.827925</value>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Executive Summary</h2>
+                <div class="summary-cards">
+                    <div class="card critical">
+                        <div class="number">2</div>
+                        <div class="label">Critical</div>
+                    </div>
+                    <div class="card high">
+                        <div class="number">1</div>
+                        <div class="label">High</div>
+                    </div>
+                    <div class="card medium">
+                        <div class="number">0</div>
+                        <div class="label">Medium</div>
+                    </div>
+                    <div class="card low">
+                        <div class="number">0</div>
+                        <div class="label">Low</div>
+                    </div>
+                </div>
+                <p><strong>Total Vulnerabilities:</strong> 3 | 
+                   <strong class="status-fixed">Fixed:</strong> 0 | 
+                   <strong class="status-open">Open:</strong> 3</p>
+            </div>
+            
+            <div class="section">
+                <h2>Vulnerability Details</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Severity</th>
+                            <th>Type</th>
+                            <th>Service</th>
+                            <th>Port</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+        <tr>
+            <td>1</td>
+            <td><span style="background-color: #dc3545; color: white; padding: 2px 8px; border-radius: 4px;">Critical</span></td>
+            <td>EXPOSED_DATABASE_PORT</td>
+            <td>MongoDB</td>
+            <td>27017</td>
+            <td><span style="color: red;">○ Open</span></td>
+        </tr>
+        
+        <tr>
+            <td>2</td>
+            <td><span style="background-color: #dc3545; color: white; padding: 2px 8px; border-radius: 4px;">CRITICAL</span></td>
+            <td>DEFAULT_CREDENTIALS</td>
+            <td>SSH</td>
+            <td>22</td>
+            <td><span style="color: red;">○ Open</span></td>
+        </tr>
+        
+        <tr>
+            <td>3</td>
+            <td><span style="background-color: #fd7e14; color: white; padding: 2px 8px; border-radius: 4px;">HIGH</span></td>
+            <td>OUTDATED_COMPONENT</td>
+            <td>HTTP</td>
+            <td>80</td>
+            <td><span style="color: red;">○ Open</span></td>
+        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated by RedShield - Red Team Remediation Toolkit</p>
+            <p>Report generated on 2026-01-15 23:44:59</p>
+        </div>
+    </div>
+</body>
+</html>
+    

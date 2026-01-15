@@ -13,77 +13,66 @@ const VULN_EXPLANATIONS: Record<string, {
   whyItMatters: string;
   realWorldExample: string;
   howToFix: string;
-  icon: string;
 }> = {
   'SQL Injection': {
     whatItIs: "A security hole that lets hackers send commands to your database through your website's forms or URLs.",
     whyItMatters: "Hackers could steal all your customer data, delete your entire database, or take control of your server.",
     realWorldExample: "Imagine someone typing a 'magic password' that makes your website show them everyone's private information.",
-    howToFix: "We need to add special filters to your website that check all user input before sending it to the database.",
-    icon: "🗄️"
+    howToFix: "We need to add special filters to your website that check all user input before sending it to the database."
   },
   'Cross-Site Scripting': {
     whatItIs: "A vulnerability that lets attackers inject malicious code into pages that other users see.",
     whyItMatters: "Attackers can steal login sessions, redirect users to fake websites, or deface your site.",
     realWorldExample: "Like someone putting a fake 'Click here for a prize' sign in your store that actually steals wallets.",
-    howToFix: "We sanitize (clean) all user input before displaying it on your pages.",
-    icon: "📝"
+    howToFix: "We sanitize (clean) all user input before displaying it on your pages."
   },
   'XSS': {
     whatItIs: "A vulnerability that lets attackers inject malicious code into pages that other users see.",
     whyItMatters: "Attackers can steal login sessions, redirect users to fake websites, or deface your site.",
     realWorldExample: "Like someone putting a fake 'Click here for a prize' sign in your store that actually steals wallets.",
-    howToFix: "We sanitize (clean) all user input before displaying it on your pages.",
-    icon: "📝"
+    howToFix: "We sanitize (clean) all user input before displaying it on your pages."
   },
   'Command Injection': {
     whatItIs: "A hole that lets attackers run system commands on your server through your website.",
     whyItMatters: "Complete server takeover - attackers could read all files, install malware, or destroy everything.",
     realWorldExample: "Like leaving your server's keyboard accessible to anyone on the internet.",
-    howToFix: "We restrict what commands can be run and never pass user input directly to system commands.",
-    icon: "💻"
+    howToFix: "We restrict what commands can be run and never pass user input directly to system commands."
   },
   'Default Credentials': {
     whatItIs: "Your system is using factory-default usernames and passwords that everyone knows.",
     whyItMatters: "Anyone can look up the default password online and log into your system.",
     realWorldExample: "Like never changing the '1234' PIN code that came with your new safe.",
-    howToFix: "Change all default passwords to strong, unique ones immediately.",
-    icon: "🔑"
+    howToFix: "Change all default passwords to strong, unique ones immediately."
   },
   'Exposed Database': {
     whatItIs: "Your database is accessible directly from the internet without protection.",
     whyItMatters: "Anyone can connect to your database and see, modify, or delete all your data.",
     realWorldExample: "Like leaving your filing cabinet on the sidewalk with no lock.",
-    howToFix: "Configure firewall rules to block external access and require authentication.",
-    icon: "🗃️"
+    howToFix: "Configure firewall rules to block external access and require authentication."
   },
   'Outdated Software': {
     whatItIs: "You're running old software with known security vulnerabilities that have been publicly disclosed.",
     whyItMatters: "Hackers have tools that automatically exploit these known vulnerabilities.",
     realWorldExample: "Like using a lock that was on the news for being easy to pick, and never replacing it.",
-    howToFix: "Update to the latest version of the software which has these issues fixed.",
-    icon: "📦"
+    howToFix: "Update to the latest version of the software which has these issues fixed."
   },
   'Open SSH Port': {
     whatItIs: "SSH (remote access) is open to the internet, allowing connection attempts from anywhere.",
     whyItMatters: "Hackers constantly scan for open SSH ports and try to guess passwords.",
     realWorldExample: "Like having a door to your server room that faces the public street.",
-    howToFix: "Restrict SSH access to specific IP addresses or use a VPN.",
-    icon: "🚪"
+    howToFix: "Restrict SSH access to specific IP addresses or use a VPN."
   },
   'Weak SSL/TLS': {
     whatItIs: "Your website's encryption is outdated or misconfigured.",
     whyItMatters: "Attackers could intercept and read data sent between users and your website.",
     realWorldExample: "Like sending sensitive letters through a glass envelope.",
-    howToFix: "Update SSL/TLS configuration to use modern, strong encryption.",
-    icon: "🔒"
+    howToFix: "Update SSL/TLS configuration to use modern, strong encryption."
   },
   'Information Disclosure': {
     whatItIs: "Your system is revealing sensitive information it shouldn't (error messages, version numbers, etc.).",
     whyItMatters: "This information helps attackers plan targeted attacks against your specific setup.",
     realWorldExample: "Like posting your alarm system model and schedule on your front door.",
-    howToFix: "Configure error handling to show generic messages and hide system details.",
-    icon: "📢"
+    howToFix: "Configure error handling to show generic messages and hide system details."
   }
 };
 
@@ -95,8 +84,7 @@ const getVulnExplanation = (vulnType: string) => {
     whatItIs: "A security weakness that could allow unauthorized access.",
     whyItMatters: "This could lead to data breach or system compromise.",
     realWorldExample: "A gap in your security that hackers could exploit.",
-    howToFix: "Apply the recommended security patches and configurations.",
-    icon: "⚠️"
+    howToFix: "Apply the recommended security patches and configurations."
   };
 };
 
@@ -117,16 +105,16 @@ interface Vulnerability {
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const config: Record<string, { bg: string; icon: string; label: string }> = {
-    critical: { bg: 'bg-red-500/20 text-red-400 border-red-500/50', icon: '🚨', label: 'CRITICAL' },
-    high: { bg: 'bg-orange-500/20 text-orange-400 border-orange-500/50', icon: '⚠️', label: 'HIGH' },
-    medium: { bg: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50', icon: '⚡', label: 'MEDIUM' },
-    low: { bg: 'bg-green-500/20 text-green-400 border-green-500/50', icon: 'ℹ️', label: 'LOW' },
+  const config: Record<string, { bg: string; label: string }> = {
+    critical: { bg: 'bg-red-500/20 text-red-400 border-red-500/50', label: 'CRITICAL' },
+    high: { bg: 'bg-orange-500/20 text-orange-400 border-orange-500/50', label: 'HIGH' },
+    medium: { bg: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50', label: 'MEDIUM' },
+    low: { bg: 'bg-green-500/20 text-green-400 border-green-500/50', label: 'LOW' },
   };
   const style = config[severity?.toLowerCase()] || config.low;
   return (
     <span className={`px-3 py-1 rounded-lg text-sm font-semibold border ${style.bg}`}>
-      {style.icon} {style.label}
+      {style.label}
     </span>
   );
 }
@@ -148,7 +136,6 @@ function VulnerabilityCard({ vuln, onSelect }: { vuln: Vulnerability; onSelect: 
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{explanation.icon}</span>
             <div>
               <h3 className="text-white font-semibold text-lg">{vuln.vuln_type}</h3>
               <p className="text-gray-500 text-sm">{vuln.target}:{vuln.port}</p>
@@ -221,7 +208,6 @@ function VulnerabilityDetailModal({ vuln, onClose }: { vuln: Vulnerability; onCl
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-5xl">{explanation.icon}</span>
               <div>
                 <h2 className="text-2xl font-bold text-white">{vuln.vuln_type}</h2>
                 <p className="text-gray-400">{vuln.target}:{vuln.port} • {vuln.service}</p>
@@ -389,23 +375,23 @@ export default function Vulnerabilities() {
           <p className="text-2xl font-bold text-white">{stats.total}</p>
         </div>
         <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
-          <p className="text-red-400 text-sm">🚨 Critical</p>
+          <p className="text-red-400 text-sm">Critical</p>
           <p className="text-2xl font-bold text-red-400">{stats.critical}</p>
         </div>
         <div className="bg-orange-500/10 rounded-xl p-4 border border-orange-500/30">
-          <p className="text-orange-400 text-sm">⚠️ High</p>
+          <p className="text-orange-400 text-sm">High</p>
           <p className="text-2xl font-bold text-orange-400">{stats.high}</p>
         </div>
         <div className="bg-yellow-500/10 rounded-xl p-4 border border-yellow-500/30">
-          <p className="text-yellow-400 text-sm">⚡ Medium</p>
+          <p className="text-yellow-400 text-sm">Medium</p>
           <p className="text-2xl font-bold text-yellow-400">{stats.medium}</p>
         </div>
         <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/30">
-          <p className="text-green-400 text-sm">✅ Fixed</p>
+          <p className="text-green-400 text-sm">Fixed</p>
           <p className="text-2xl font-bold text-green-400">{stats.fixed}</p>
         </div>
         <div className="bg-gray-700/30 rounded-xl p-4 border border-gray-600">
-          <p className="text-gray-400 text-sm">🔓 Open</p>
+          <p className="text-gray-400 text-sm">Open</p>
           <p className="text-2xl font-bold text-gray-300">{stats.open}</p>
         </div>
       </div>
@@ -428,10 +414,10 @@ export default function Vulnerabilities() {
           className="px-4 py-3 bg-[#111827] border border-gray-700 rounded-xl text-white focus:outline-none focus:border-blue-500"
         >
           <option value="all">All Severities</option>
-          <option value="critical">🚨 Critical Only</option>
-          <option value="high">⚠️ High Only</option>
-          <option value="medium">⚡ Medium Only</option>
-          <option value="low">ℹ️ Low Only</option>
+          <option value="critical">Critical Only</option>
+          <option value="high">High Only</option>
+          <option value="medium">Medium Only</option>
+          <option value="low">Low Only</option>
         </select>
         <select
           value={filterStatus}
@@ -439,8 +425,8 @@ export default function Vulnerabilities() {
           className="px-4 py-3 bg-[#111827] border border-gray-700 rounded-xl text-white focus:outline-none focus:border-blue-500"
         >
           <option value="all">All Status</option>
-          <option value="open">🔓 Open Only</option>
-          <option value="fixed">✅ Fixed Only</option>
+          <option value="open">Open Only</option>
+          <option value="fixed">Fixed Only</option>
         </select>
         {stats.open > 0 && (
           <button
@@ -456,7 +442,7 @@ export default function Vulnerabilities() {
       {filteredVulns.length === 0 ? (
         <div className="text-center py-16">
           <Shield className="w-20 h-20 text-green-500/30 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-green-400 mb-2">All Clear! 🎉</h2>
+          <h2 className="text-2xl font-bold text-green-400 mb-2">All Clear!</h2>
           <p className="text-gray-400 mb-6">
             {vulnerabilities.length === 0 
               ? "No security issues found. Run a scan to check your systems."

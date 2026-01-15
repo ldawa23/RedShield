@@ -257,7 +257,7 @@ export default function UsersPage() {
                       ? 'bg-purple-500/20 text-purple-400' 
                       : 'bg-blue-500/20 text-blue-400'
                   }`}>
-                    {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+                    {user.role === 'admin' ? 'Admin' : 'User'}
                   </span>
                 </td>
                 <td className="px-6 py-4">
