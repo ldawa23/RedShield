@@ -23,6 +23,7 @@ export function getDatabase(): Database.Database {
     
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = OFF');  // Disable foreign key constraints for flexibility
     
     // Create tables if they don't exist (for standalone web usage)
     initializeTables();
@@ -33,6 +34,71 @@ export function getDatabase(): Database.Database {
 }
 
 function initializeTables() {
+  // Core scans table (required for the app to work)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scan_id TEXT UNIQUE NOT NULL,
+      target TEXT NOT NULL,
+      port_range TEXT DEFAULT 'default',
+      scan_type TEXT DEFAULT 'quick',
+      status TEXT DEFAULT 'pending',
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      user_id INTEGER,
+      raw_output TEXT
+    )
+  `);
+
+  // Core vulnerabilities table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS vulnerabilities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      scan_id TEXT NOT NULL,
+      vuln_type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      host TEXT,
+      port INTEGER,
+      service TEXT,
+      description TEXT,
+      cve_id TEXT,
+      owasp_category TEXT,
+      mitre_technique TEXT,
+      evidence TEXT,
+      affected_code TEXT,
+      remediation_code TEXT,
+      status TEXT DEFAULT 'open',
+      discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fixed_at DATETIME,
+      fix_method TEXT,
+      fix_description TEXT,
+      before_state TEXT,
+      after_state TEXT,
+      verification_result TEXT,
+      fix_command TEXT
+    )
+  `);
+
+  // Core remediations table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS remediations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vulnerability_id INTEGER NOT NULL,
+      playbook_path TEXT,
+      execution_type TEXT DEFAULT 'manual',
+      status TEXT DEFAULT 'pending',
+      output TEXT,
+      started_at DATETIME,
+      completed_at DATETIME,
+      fix_method TEXT,
+      fix_command TEXT,
+      before_state TEXT,
+      after_state TEXT,
+      verification_result TEXT,
+      FOREIGN KEY (vulnerability_id) REFERENCES vulnerabilities(id)
+    )
+  `);
+
   // Users table (for web auth, separate from CLI auth)
   db.exec(`
     CREATE TABLE IF NOT EXISTS web_users (
@@ -109,7 +175,20 @@ function addMissingColumnsToVulnerabilities() {
       { name: 'after_state', type: 'TEXT' },
       { name: 'verification_result', type: 'TEXT' },
       { name: 'fixed_at', type: 'DATETIME' },
-      { name: 'fix_command', type: 'TEXT' }
+      { name: 'fix_command', type: 'TEXT' },
+      // Add evidence columns for detailed vulnerability info
+      { name: 'owasp_category', type: 'TEXT' },
+      { name: 'mitre_id', type: 'TEXT' },
+      { name: 'cve_id', type: 'TEXT' },
+      { name: 'vulnerable_url', type: 'TEXT' },
+      { name: 'vulnerable_parameter', type: 'TEXT' },
+      { name: 'http_method', type: 'TEXT' },
+      { name: 'payload_used', type: 'TEXT' },
+      { name: 'request_example', type: 'TEXT' },
+      { name: 'response_snippet', type: 'TEXT' },
+      { name: 'target', type: 'TEXT' },
+      { name: 'remediation_code', type: 'TEXT' },
+      { name: 'fix_available', type: 'INTEGER DEFAULT 1' }
     ];
     
     for (const col of columnsToAdd) {
@@ -180,6 +259,7 @@ async function createDefaultAdmin() {
 // Helper functions for common queries
 export const dbHelpers = {
   // Get all scans with vulnerability counts
+  // FIX: Join on scan_id TEXT field, not integer ID
   getScansWithStats: () => {
     const stmt = db.prepare(`
       SELECT 
@@ -191,7 +271,7 @@ export const dbHelpers = {
         SUM(CASE WHEN UPPER(v.severity) = 'LOW' THEN 1 ELSE 0 END) as low_count,
         SUM(CASE WHEN v.status = 'fixed' THEN 1 ELSE 0 END) as fixed_count
       FROM scans s
-      LEFT JOIN vulnerabilities v ON s.id = v.scan_id
+      LEFT JOIN vulnerabilities v ON s.scan_id = v.scan_id
       GROUP BY s.id
       ORDER BY s.started_at DESC
     `);
@@ -205,18 +285,20 @@ export const dbHelpers = {
   },
   
   // Get vulnerabilities for a scan (includes new HTTP request fields)
-  getVulnerabilitiesByScan: (scanId: number) => {
+  getVulnerabilitiesByScan: (scanIdParam: number | string) => {
     // Check which columns exist in remediations table
     const tableInfo = db.prepare("PRAGMA table_info(remediations)").all() as any[];
     const remediationColumns = new Set(tableInfo.map((col: any) => col.name));
     
+    // Determine if we're using integer ID or string scan_id
+    const isTextScanId = typeof scanIdParam === 'string';
+    
     // Build dynamic select for remediation columns
-    const remediationSelects: string[] = [
-      'r.playbook_name',
-      'r.status as remediation_status',
-      'r.applied_at',
-      'r.output as remediation_output'
-    ];
+    const remediationSelects: string[] = [];
+    if (remediationColumns.has('playbook_path')) remediationSelects.push('r.playbook_path as playbook_name');
+    if (remediationColumns.has('status')) remediationSelects.push('r.status as remediation_status');
+    if (remediationColumns.has('completed_at')) remediationSelects.push('r.completed_at as applied_at');
+    if (remediationColumns.has('output')) remediationSelects.push('r.output as remediation_output');
     
     // Add optional columns if they exist
     if (remediationColumns.has('fix_method')) remediationSelects.push('r.fix_method');
@@ -225,10 +307,15 @@ export const dbHelpers = {
     if (remediationColumns.has('after_state')) remediationSelects.push('r.after_state');
     if (remediationColumns.has('verification_result')) remediationSelects.push('r.verification_result');
     
+    // Build the remediation joins clause
+    const remediationSelectsStr = remediationSelects.length > 0 
+      ? ',\n        ' + remediationSelects.join(',\n        ')
+      : '';
+    
     const stmt = db.prepare(`
       SELECT 
-        v.*,
-        ${remediationSelects.join(',\n        ')}
+        v.*
+        ${remediationSelectsStr}
       FROM vulnerabilities v
       LEFT JOIN remediations r ON v.id = r.vulnerability_id
       WHERE v.scan_id = ?
@@ -240,7 +327,7 @@ export const dbHelpers = {
           WHEN 'LOW' THEN 4 
         END
     `);
-    return stmt.all(scanId);
+    return stmt.all(scanIdParam);
   },
   
   // Get dashboard statistics

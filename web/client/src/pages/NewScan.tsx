@@ -91,6 +91,7 @@ export default function NewScan() {
   const navigate = useNavigate();
   const [target, setTarget] = useState('');
   const [scanType, setScanType] = useState<'quick' | 'full' | 'deep'>('quick');
+  const [scanMode, setScanMode] = useState<'demo' | 'real'>('real'); // Demo vs Real mode
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState({ phase: '', detail: '' });
@@ -161,6 +162,7 @@ export default function NewScan() {
       const res = await api.post('/scans/start', {
         target: target.trim(),
         scanType,
+        scanMode, // Send mode to backend
         scanner: 'auto'
       });
 
@@ -352,15 +354,133 @@ export default function NewScan() {
             </div>
           </div>
 
+          {/* Step 3: Scan Mode (Demo vs Real) */}
+          <div className="bg-gradient-to-br from-[#0d1f3c] to-[#0a1628] rounded-2xl border border-gray-800 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm">3</div>
+              <h2 className="text-xl font-semibold text-white">Scan Mode</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Demo Mode */}
+              <button
+                onClick={() => setScanMode('demo')}
+                disabled={isScanning}
+                className={`relative text-left p-5 rounded-xl border-2 transition-all ${
+                  scanMode === 'demo' 
+                    ? 'border-yellow-500 bg-yellow-500/10' 
+                    : 'border-gray-700 bg-[#081225] hover:border-gray-600'
+                }`}
+              >
+                {scanMode === 'demo' && (
+                  <div className="absolute top-3 right-3">
+                    <CheckCircle className="w-5 h-5 text-yellow-400" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 mb-2">
+                  <Eye className={`w-6 h-6 ${scanMode === 'demo' ? 'text-yellow-400' : 'text-gray-500'}`} />
+                  <h3 className={`font-semibold text-lg ${scanMode === 'demo' ? 'text-white' : 'text-gray-300'}`}>
+                    Demo Mode
+                  </h3>
+                </div>
+                
+                <p className="text-gray-400 text-sm mb-3">
+                  Safe demonstration using simulated vulnerability data. Perfect for presentations and learning.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Safe</span>
+                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">No Real Attacks</span>
+                  <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">Any Target</span>
+                </div>
+                
+                <p className="text-gray-500 text-xs mt-3">
+                  ✓ Use on google.com, facebook.com, etc. for demos<br/>
+                  ✓ Shows realistic vulnerability examples<br/>
+                  ✓ Full HTTP request/response details
+                </p>
+              </button>
+
+              {/* Real Mode */}
+              <button
+                onClick={() => setScanMode('real')}
+                disabled={isScanning}
+                className={`relative text-left p-5 rounded-xl border-2 transition-all ${
+                  scanMode === 'real' 
+                    ? 'border-red-500 bg-red-500/10' 
+                    : 'border-gray-700 bg-[#081225] hover:border-gray-600'
+                }`}
+              >
+                {scanMode === 'real' && (
+                  <div className="absolute top-3 right-3">
+                    <CheckCircle className="w-5 h-5 text-red-400" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className={`w-6 h-6 ${scanMode === 'real' ? 'text-red-400' : 'text-gray-500'}`} />
+                  <h3 className={`font-semibold text-lg ${scanMode === 'real' ? 'text-white' : 'text-gray-300'}`}>
+                    Real Test
+                  </h3>
+                </div>
+                
+                <p className="text-gray-400 text-sm mb-3">
+                  Actual penetration testing on authorized targets only. Use on pentest-ground, DVWA, or your own servers.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">Real Attacks</span>
+                  <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">Authorization Required</span>
+                </div>
+                
+                <p className="text-gray-500 text-xs mt-3">
+                  ⚠️ Only use on systems you own or have permission<br/>
+                  ✓ pentest-ground.com, DVWA, your servers<br/>
+                  ✓ Actual vulnerability detection
+                </p>
+              </button>
+            </div>
+
+            {/* Mode Warning */}
+            {scanMode === 'real' && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Warning:</strong> Real testing sends actual exploit payloads. Only scan targets you are 
+                    authorized to test (pentest-ground.com, DVWA, your own servers). Unauthorized scanning is illegal.
+                  </span>
+                </p>
+              </div>
+            )}
+            
+            {scanMode === 'demo' && (
+              <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 text-sm flex items-start gap-2">
+                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Demo Mode:</strong> Safe for any target. Results show realistic vulnerability examples 
+                    with full HTTP request details, code locations, and fixes - perfect for presentations.
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Start Scan Button */}
           {!isScanning && !scanResult && (
             <button
               onClick={handleStartScan}
               disabled={!target.trim()}
-              className="w-full py-5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 disabled:from-gray-700 disabled:to-gray-600 text-white font-bold text-lg rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-green-500/25 disabled:shadow-none"
+              className={`w-full py-5 ${
+                scanMode === 'demo' 
+                  ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 shadow-yellow-500/25' 
+                  : 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-red-500/25'
+              } disabled:from-gray-700 disabled:to-gray-600 text-white font-bold text-lg rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg disabled:shadow-none`}
             >
               <Play className="w-6 h-6" />
-              Start Security Scan
+              {scanMode === 'demo' ? 'Start Demo Scan' : 'Start Real Penetration Test'}
             </button>
           )}
 

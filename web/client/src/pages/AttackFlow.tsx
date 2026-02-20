@@ -149,7 +149,7 @@ export default function AttackFlow() {
   const [activeTab, setActiveTab] = useState<'killchain' | 'mitre' | 'owasp'>('killchain');
   const [stats, setStats] = useState<ScanStats | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [recentScans, setRecentScans] = useState<any[]>([]);
+  const [_recentScans, setRecentScans] = useState<any[]>([]);
 
   useEffect(() => {
     loadStats();

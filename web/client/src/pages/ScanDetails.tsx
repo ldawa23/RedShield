@@ -32,6 +32,16 @@ interface Vulnerability {
   mitre_id?: string;
   cve_id?: string;
   discovered_at: string;
+  // Evidence fields
+  vulnerable_url?: string;
+  vulnerable_parameter?: string;
+  http_method?: string;
+  payload_used?: string;
+  evidence?: string;
+  request_example?: string;
+  response_snippet?: string;
+  affected_code?: string;
+  remediation_code?: string;
 }
 
 interface Scan {
@@ -322,7 +332,110 @@ export default function ScanDetails() {
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-0 border-t border-gray-800/50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                        
+                        {/* Evidence - WHERE the vulnerability is */}
+                        {(vuln.vulnerable_url || vuln.payload_used || vuln.evidence) && (
+                          <div className="lg:col-span-2 space-y-3">
+                            <h4 className="text-white font-medium flex items-center gap-2">
+                              <Target className="w-4 h-4 text-red-400" />
+                              Vulnerability Evidence (Where It Was Found)
+                            </h4>
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 space-y-3">
+                              {vuln.vulnerable_url && (
+                                <div>
+                                  <span className="text-gray-400 text-sm">Vulnerable URL:</span>
+                                  <code className="block mt-1 text-red-400 bg-black/30 p-2 rounded font-mono text-sm break-all">
+                                    {vuln.http_method || 'GET'} {vuln.vulnerable_url.startsWith('http') ? vuln.vulnerable_url : scan.target + vuln.vulnerable_url}
+                                  </code>
+                                </div>
+                              )}
+                              {vuln.vulnerable_parameter && (
+                                <div>
+                                  <span className="text-gray-400 text-sm">Vulnerable Parameter:</span>
+                                  <code className="block mt-1 text-orange-400 bg-black/30 p-2 rounded font-mono text-sm">
+                                    {vuln.vulnerable_parameter}
+                                  </code>
+                                </div>
+                              )}
+                              {vuln.payload_used && (
+                                <div>
+                                  <span className="text-gray-400 text-sm">Payload Used:</span>
+                                  <code className="block mt-1 text-yellow-400 bg-black/30 p-2 rounded font-mono text-sm break-all">
+                                    {vuln.payload_used}
+                                  </code>
+                                </div>
+                              )}
+                              {vuln.evidence && (
+                                <div>
+                                  <span className="text-gray-400 text-sm">Evidence (Proof of Exploitation):</span>
+                                  <code className="block mt-1 text-green-400 bg-black/30 p-2 rounded font-mono text-sm">
+                                    {vuln.evidence}
+                                  </code>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* HTTP Request/Response */}
+                        {(vuln.request_example || vuln.response_snippet) && (
+                          <div className="lg:col-span-2 space-y-3">
+                            <h4 className="text-white font-medium flex items-center gap-2">
+                              <Globe className="w-4 h-4 text-blue-400" />
+                              HTTP Request/Response
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {vuln.request_example && (
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                                  <span className="text-blue-400 text-sm font-medium">Request:</span>
+                                  <pre className="mt-2 text-gray-300 bg-black/30 p-2 rounded font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                                    {vuln.request_example.replace(/\\n/g, '\n')}
+                                  </pre>
+                                </div>
+                              )}
+                              {vuln.response_snippet && (
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                                  <span className="text-green-400 text-sm font-medium">Response (Vulnerable):</span>
+                                  <pre className="mt-2 text-gray-300 bg-black/30 p-2 rounded font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                                    {vuln.response_snippet.replace(/\\n/g, '\n')}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Affected Code */}
+                        {vuln.affected_code && (
+                          <div className="space-y-3">
+                            <h4 className="text-white font-medium flex items-center gap-2">
+                              <Bug className="w-4 h-4 text-red-400" />
+                              Vulnerable Code
+                            </h4>
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                              <pre className="text-red-400 bg-black/30 p-2 rounded font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                                {vuln.affected_code}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Remediation Code */}
+                        {vuln.remediation_code && (
+                          <div className="space-y-3">
+                            <h4 className="text-white font-medium flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                              Fixed Code (How to Fix)
+                            </h4>
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                              <pre className="text-green-400 bg-black/30 p-2 rounded font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                                {vuln.remediation_code}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Technical Details */}
                         <div className="space-y-3">
                           <h4 className="text-white font-medium flex items-center gap-2">
@@ -377,11 +490,17 @@ export default function ScanDetails() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                copyToClipboard(vuln.description, `desc-${vuln.id}`);
+                                copyToClipboard(JSON.stringify({
+                                  type: vuln.vuln_type,
+                                  url: vuln.vulnerable_url,
+                                  parameter: vuln.vulnerable_parameter,
+                                  payload: vuln.payload_used,
+                                  evidence: vuln.evidence
+                                }, null, 2), `evidence-${vuln.id}`);
                               }}
                               className="w-full px-4 py-2 bg-gray-700 text-gray-300 hover:bg-gray-600 rounded-lg text-sm flex items-center justify-center gap-2"
                             >
-                              {copiedId === `desc-${vuln.id}` ? (
+                              {copiedId === `evidence-${vuln.id}` ? (
                                 <>
                                   <CheckCircle className="w-4 h-4 text-green-400" />
                                   Copied!
@@ -389,22 +508,19 @@ export default function ScanDetails() {
                               ) : (
                                 <>
                                   <Copy className="w-4 h-4" />
-                                  Copy Details
+                                  Copy Evidence
                                 </>
                               )}
                             </button>
-                            {vuln.cve_id && (
-                              <a
-                                href={`https://nvd.nist.gov/vuln/detail/${vuln.cve_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-full px-4 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-sm flex items-center justify-center gap-2"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                View CVE Details
-                              </a>
-                            )}
+                          </div>
+                          
+                          {/* Warning about Fix limitations */}
+                          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-3">
+                            <p className="text-yellow-400 text-xs">
+                              <strong>Note:</strong> "Fix" only works on servers YOU control with SSH access. 
+                              External sites like DVWA/pentest-ground cannot be fixed remotely - 
+                              that would require unauthorized access.
+                            </p>
                           </div>
                         </div>
                       </div>

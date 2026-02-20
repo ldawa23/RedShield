@@ -126,26 +126,34 @@ export default function Dashboard() {
     if (!stats) return 100;
     const totalVulns = stats.total_vulns || 0;
     const fixedVulns = stats.fixed_vulns || 0;
-    const critical = stats.critical || 0;
-    const high = stats.high || 0;
-    const medium = stats.medium || 0;
-    const low = stats.low || 0;
     
+    // If no vulnerabilities found, perfect score
     if (totalVulns === 0) return 100;
     
-    const severityWeight = (critical * 40 + high * 25 + medium * 10 + low * 5);
-    const maxPossibleWeight = totalVulns * 40;
+    // If ALL vulnerabilities are fixed, perfect score!
+    if (fixedVulns >= totalVulns) return 100;
     
-    if (maxPossibleWeight === 0) return 100;
+    // Calculate based on OPEN (unfixed) vulnerabilities only
+    const openVulns = totalVulns - fixedVulns;
     
-    const rawScore = 100 - (severityWeight / maxPossibleWeight * 100);
-    const fixBonus = totalVulns > 0 ? (fixedVulns / totalVulns) * 20 : 0;
-    const finalScore = Math.max(0, Math.min(100, Math.round(rawScore + fixBonus)));
+    // Estimate severity of open vulns (proportionally from total counts)
+    const fixRatio = fixedVulns / totalVulns;
+    const openCritical = Math.round((stats.critical || 0) * (1 - fixRatio));
+    const openHigh = Math.round((stats.high || 0) * (1 - fixRatio));
+    const openMedium = Math.round((stats.medium || 0) * (1 - fixRatio));
+    const openLow = Math.round((stats.low || 0) * (1 - fixRatio));
+    
+    // Calculate penalty based on open vulnerabilities
+    const severityPenalty = (openCritical * 25 + openHigh * 15 + openMedium * 8 + openLow * 3);
+    
+    // Base score of 100, minus penalties for open vulnerabilities
+    const finalScore = Math.max(0, Math.min(100, 100 - severityPenalty));
     
     return isNaN(finalScore) ? 100 : finalScore;
   };
 
   const getScoreStatus = (score: number) => {
+    if (score >= 95) return { label: "Excellent", sublabel: "All vulnerabilities fixed!", color: "green" };
     if (score >= 80) return { label: "Good", sublabel: "Your systems are well protected", color: "green" };
     if (score >= 60) return { label: "Fair", sublabel: "Some issues need attention", color: "yellow" };
     if (score >= 40) return { label: "At Risk", sublabel: "Several vulnerabilities found", color: "orange" };
